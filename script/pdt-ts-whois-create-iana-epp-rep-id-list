@@ -507,7 +507,10 @@ else {
     croak( "Could not close $new_lf_name: $!" );
 }
 
-make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
+# Create temp directory
+unless ( -d $datadir ) {
+    make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
+}
 
 # Move the new list into the target place
 if ( &File::Copy::move( $new_lf_name, $epp_id_path ) ) {
