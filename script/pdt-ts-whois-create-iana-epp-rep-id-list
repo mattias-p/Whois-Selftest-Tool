@@ -55,9 +55,8 @@ my $iana_file   = 'epp-repository-ids-1.csv';
 my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/' . $iana_file;    # This is assumed to be a http(s) URL
 my $wget        = '/usr/bin/wget';                                                        # wget to fetch file with
 my $timeout     = '/usr/bin/timeout';                                                     # Timeout program to control that wget does not hang too long.
-my $logger      = '/usr/bin/logger';                                                      # logger to send log messages to syslog with
 my $fileprog    = "/usr/bin/file";                                                        # To test encoding of file before we process it.
-my @ext_progs   = ( $wget, $timeout, $logger, $fileprog );                                # To be able to test that they are there and executable
+my @ext_progs   = ( $wget, $timeout, $fileprog );                                         # To be able to test that they are there and executable
 my $filemode    = oct( "0664" );                                                          # To be set on target file. It must be writable by the pdt group.
 my $gid         = getgrnam 'pdt';                                                         # gid of group "pdt"
 
@@ -81,13 +80,9 @@ Readonly my @CSV_exp_header => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Con
 
 # CLI arguments - defined early to be usable anywhere
 my $opt_help;         # Ask for help
-my $opt_cron;         # Cron mode (messages through syslog)
 my $opt_version;      # Print version
 my $opt_devel_out;    # If set, then write file (txt) in current directory (for debugging/development)
 my $opt_devel_in;     # If set, then fetch file (cvs) in current directory (for debugging/development)
-
-# Can be reset by option
-my $cron = 0;         # Should be true if run by cron
 
 # Will be reset after options are evaluated unless --devel-out is selected.
 my $epp_id_path = $epp_id_file;    # Normal value should be ${confdir}/${epp_id_file}, where whois script expects.
@@ -98,42 +93,25 @@ my $me = basename( $0 );
 # Array of created temporary files. File names are added below.
 my @tempfiles;
 
-# Print message to standard output or send to syslog
+# Print message to standard output
 sub message {
 
     # The "message" must start with "ERROR" or "INFO"
     my ( $tag ) = shift @_;
     my $msg = "@_";
-    my $cmd;
 
     # Send to syslog if selected, or else print to screen
     if ( $tag eq 'ERROR' ) {
-        if ( $cron ) {
-            $cmd = "$logger -p daemon.err -t $me -- '$tag: $msg'";
-        }
-        else {
-            warn "$tag: $msg\n";
-        }
+        warn "$tag: $msg\n";
     }
     elsif ( $tag eq 'INFO' ) {
-        if ( $cron ) {
-            $cmd = "$logger -p daemon.notice -t $me -- '$tag: $msg'";
-        }
-        else {
-            print "$tag: $msg\n";
-        }
+        print "$tag: $msg\n";
     }
     else {
 
         # If level was not correctly set, die. This can only be due
         # to a bug in the script.
         die "ERROR in script!\n";
-    }
-
-    # If logger command was composed, eject it. This could only fail
-    # if logger is not available or some other fatal error.
-    if ( $cmd ) {
-        system( $cmd) == 0 or die "System $cmd failed: $!";
     }
 };    # sub message ##################################################
 
@@ -467,7 +445,6 @@ sub parse {
 GetOptions(
     'help|?'    => \$opt_help,
     'version'   => \$opt_version,
-    'cron'      => \$opt_cron,
     'devel-out' => \$opt_devel_out,
     'devel-in'  => \$opt_devel_in,
 ) || pod2usage( -verbose => 0, -exitval => 2 );
@@ -482,9 +459,6 @@ pod2usage(
     -message => "$me version $VERSION\n"
 ) if $opt_version;
 pod2usage( -verbose => 2, -exitval => 1 ) if $opt_help;
-
-# Set cron flag if --cron was set
-$cron = 1 if $opt_cron;
 
 # Set full path unless we are developing/debugging
 $epp_id_path = ${confdir} . '/' . ${epp_id_file} unless $opt_devel_out;
