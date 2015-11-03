@@ -29,8 +29,6 @@
 #
 # Version 1.0: 2015-10-06: Mats Dufberg: First release version
 
-my $VERSION = '1.0';
-
 use strict;
 use warnings;
 use File::Basename;
@@ -45,6 +43,8 @@ use Text::CSV_XS 0.90;
 use Text::CSV;
 use Encode;
 
+my $VERSION = '1.0';
+
 # General settings that cannot be changed.
 my $confdir     = '/etc/pdt';                   # Where PDT conf reside
 my $epp_id_file = 'iana-epp-rep-id.txt';      # This must be the same file as pdt-ts-whois expects
@@ -55,7 +55,7 @@ my $timeout     = '/usr/bin/timeout';           # Timeout program to control tha
 my $logger      = '/usr/bin/logger';            # logger to send log messages to syslog with
 my $fileprog    = "/usr/bin/file";              # To test encoding of file before we process it.
 my @ext_progs   = ($wget, $timeout, $logger, $fileprog); # To be able to test that they are there and executable
-my $filemode    = 0664;                         # To be set on target file. It must be writable by the pdt group.
+my $filemode    = oct("0664");                  # To be set on target file. It must be writable by the pdt group.
 my $gid         = getgrnam 'pdt';               # gid of group "pdt"
 
 # Regular expressions 
@@ -564,7 +564,7 @@ my ( $new_lf_name ) = &create_temp_file( "$confdir" );
 my ( $inf, $outf );
 
 # Open the tempfile for reading
-unless ( open( $inf, $workfilename ) ) {
+unless ( open( $inf, '<', $workfilename ) ) {
     &message( "ERROR", "Cannot open $workfilename for reading: $!" );
     &clean_and_exit( 1 );
 }
