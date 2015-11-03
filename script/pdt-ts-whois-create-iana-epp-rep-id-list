@@ -60,8 +60,6 @@ my $wget        = '/usr/bin/wget';                                              
 my $timeout     = '/usr/bin/timeout';                                                     # Timeout program to control that wget does not hang too long.
 my $fileprog    = "/usr/bin/file";                                                        # To test encoding of file before we process it.
 my @ext_progs   = ( $wget, $timeout, $fileprog );                                         # To be able to test that they are there and executable
-my $filemode    = oct( "0664" );                                                          # To be set on target file. It must be writable by the pdt group.
-my $gid         = getgrnam 'pdt';                                                         # gid of group "pdt"
 my $tempdir     = tempdir( CLEANUP => 1 );
 
 # Regular expressions
@@ -507,16 +505,6 @@ if ( close $outf ) {
 }
 else {
     croak( "Could not close $new_lf_name: $!" );
-}
-
-# Set correct mode of file
-unless ( chmod $filemode, $new_lf_name ) {
-    croak( "Could not set correct file mode on $new_lf_name: $!" );
-}
-
-# Assign file to correct group
-unless ( chown -1, $gid, $new_lf_name ) {
-    croak( "Could not assign file $new_lf_name to group pdt: $!" );
 }
 
 make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
