@@ -1,0 +1,422 @@
+#!/usr/bin/perl -w
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+whois-self-test-tool - Validates Whois output
+
+=head1 SYNOPSIS
+
+=over 4
+
+=item whois-self-test-tool [ --help | --man ]
+
+=item whois-self-test-tool --domain=HOST FILE --epp-repo-id=SUFFIX
+
+=item whois-self-test-tool --registrar=SUBSTRING FILE
+
+=item whois-self-test-tool --nameserver=HOST FILE
+
+=item whois-self-test-tool --nameserver-ip=IP FILE
+
+=back
+
+=head1 OPTIONS AND ARGUMENTS
+
+=over 4
+
+=item B<-?>, B<--help>
+
+Display usage and options, and exit.
+
+=item B<--man>
+
+Display full man page.
+
+=item B<-e=SUFFIX>, B<--epp-repo-id=SUFFIX>
+
+Specify the EPP repo id to use in validation.
+
+=item B<-d=HOST>, B<--domain=HOST>
+
+Validate B<Domain Name Object reply> for the B<HOST> domain name object.
+
+=item B<-r=SUBSTRING>, B<--registrar=SUBSTRING>
+
+Validate B<Registrar Object reply> for a registrar object whose name contains
+the specified B<SUBSTRING>.
+
+=item B<-n=HOST>, B<--nameserver=HOST>
+
+Validate B<Name Server Object reply> for the B<HOST> name server object.
+
+=item B<-i=IP>, B<--nameserver-ip=IP>
+
+Validate B<Name Server Object reply> for the name server objects with the B<IP>
+IPv4 or IPv6 address.
+
+=item B<FILE>
+
+The reply input file to read. If C<-> is specified, the reply is read from
+standard input.
+
+=back
+
+=head1 DESCRIPTION
+
+=head2 Purpose
+
+The purpose of the Whois Selftest Tool is to help gTLD applicants prepare for
+Pre-Delegation Testing by providing pre-PDT Whois output validation.
+
+=head2 Scope
+
+While Whois Selftest Tool B<does> validate Whois output and it B<does> strive to
+reflect the state of PDT Whois output validation, it B<is not> authoritative on
+the outcome of PDT and it B<is> subject to change.
+
+=head3 Disclaimer
+
+The Whois Selftest Tool and the actual Whois testing under PDT are not equal.
+There is no guarantee that successfully running the Whois Selftest Tool means
+that the same Whois system will pass the Whois testing under PDT. For example,
+the parts of Whois tests under Whois that include DNS lookups and TCP
+connections are not included in the Whois Selftest Tool. For a complete
+reference of the Whois tests under PDT see the PDT Whois documents.
+
+=head2 Workflow
+
+=over 4
+
+=item 1. Select a whois server to query and an existing object to query for
+
+Domain name, Registrar or Nameserver objects are supported.
+
+E.g. the domain name I<domain.example> on the server I<1.2.3.4>
+
+=item 2. Send the query and save the result into a file
+
+E.g. C<whois -h 1.2.3.4 domain.example E<gt> queryoutput.txt>
+
+=item 3. Ensure that the character encoding is UTF-8 or ASCII
+
+E.g. C<file queryoutput.txt>
+
+Convert the response with C<iconv> if the encoding is neither UTF-8 nor ASCII.
+
+=item 4. Validate the fetched Whois response
+
+E.g. C<whois-self-test-tool --domain=domain.example --epp-repo-id=example
+queryoutput.txt>
+
+=item 5. Inspect any error messages
+
+=back
+
+Note: The C<whois>, C<file> and C<iconv> are general tools available on all Mac,
+Unix or Linux computers.
+
+=head1 RETURN VALUE
+
+=head1 ERRORS
+
+=head1 EXAMPLES
+
+=head1 FILES
+
+=head1 CAVEATS
+
+=head1 BUGS
+
+=head1 NOTES
+
+=head1 AUTHOR
+
+Mattias Päivärinta <mattias.paivarinta@doxwork.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (c) 2015 IIS (The Internet Foundation In Sweden)
+All rights reserved.
+
+The Whois Selftest Tool include components subject to licensing conditions
+specified in relation to the relevant component. The collection of components
+constitute the Whois Selftest Tool and the use hereof is subject to the
+following licensing conditions.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THE SOFTWARE IS PROVIDED AS-IS AND MAKES NO REPRESENTATIONS OR WARRANTIES OF
+ANY KIND CONCERNING THE WORK, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE,
+INCLUDING, WITHOUT LIMITATION, WARRANTIES OF TITLE, MERCHANTIBILITY, FITNESS
+FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR THE ABSENCE OF LATENT OR OTHER
+DEFECTS, ACCURACY, OR THE PRESENCE OF ABSENCE OF ERRORS, WHETHER OR NOT
+DISCOVERABLE.
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item The Pre-Delegation Testing microsite
+
+http://newgtlds.icann.org/en/applicants/pdt
+
+=item The PDT Test Specifications zip
+
+Present at the Pre-Delegation Testing microsite
+
+=item PDT_Whois_TC_CLI.pdf
+
+Present in the PDT Test Specification zip
+
+=item PDT_Whois_TC_Web.pdf
+
+Present in the PDT Test Specification zip
+
+=item PDT_Whois_TP.pdf
+
+Present in the PDT Test Specifications zip
+
+=back
+
+=cut
+
+use strict;
+use warnings;
+use 5.014;
+
+use Carp;
+use English;
+use Getopt::Long qw( :config );
+use Pod::Usage;
+
+use File::Slurp;
+
+use PDT::TS::Whois::Lexer;
+use PDT::TS::Whois::Validator qw( validate );
+use PDT::TS::Whois::Grammar qw( $grammar );
+use PDT::TS::Whois::Types;
+
+my $glob_types;
+
+my $opt_help;
+my $opt_man;
+my $opt_domain;
+my $opt_registrar;
+my $opt_nameserver;
+my $opt_nameserver_ip;
+my $opt_epp_repo_id;
+my $opt_stdin;
+
+sub scrub_hostname {
+    my $value = shift;
+    if ( !$glob_types->validate_type( 'hostname', $value ) ) {
+        return lc $value =~ s/\.$//r;
+    }
+    else {
+        return ();
+    }
+}
+
+sub scrub_ip_address {
+    my $value = shift;
+    if ( !$glob_types->validate_type( 'ip address', $value ) ) {
+        return Net::IP->new( $value )->ip();
+    }
+    else {
+        return ();
+    }
+}
+
+sub scrub_postal_line {
+    my $value = shift;
+    if ( !$glob_types->validate_type( 'postal line', $value ) ) {
+        return $value;
+    }
+    else {
+        return ();
+    }
+}
+
+sub scrub_u_label {
+    my $value = shift;
+    defined $value or return ();
+    $value !~ /[\u3002|\uFF61]/u or return ();
+    return domain_to_ascii(
+        $value,
+        AllowUnassigned        => 0,    # false
+        TransitionalProcessing => 0,    # false
+        UseSTD3ASCIIRules      => 0,    # false
+    );
+}
+
+sub scrub_roid {
+    my $value = shift;
+    $glob_types->validate_type( 'roid', $value ) and return ();
+    return $value;
+}
+
+sub scrub_roid_suffix {
+    my $value = shift;
+    $glob_types->validate_type( 'roid', 'prefix-' . $value ) and return ();
+    return $value;
+}
+
+sub main {
+
+    ##################################################################
+    # Initialize globals
+    #
+    # This section assigns $glob_types.
+    #
+    $glob_types = PDT::TS::Whois::Types->new;
+    $glob_types->load_roid_suffix( '../t/iana-epp-rep-id.txt' );
+
+    ##################################################################
+    # Parse command line arguments
+    #
+    # This section assings $opt_* and updates @ARGV.
+    #
+    GetOptions(
+        "help|?"            => \$opt_help,
+        "man"               => \$opt_man,
+        "domain|d=s"        => sub { $opt_domain = scrub_hostname( $_[1] ) or die "domain argument must be valid hostname" },
+        "registrar|r=s"     => sub { $opt_registrar = scrub_postal_line( $_[1] ) or die "registrar argument must be valid postal line" },
+        "nameserver|n=s"    => sub { $opt_nameserver = scrub_hostname( $_[1] ) or die "nameserver argument must be valid hostname" },
+        "nameserver-ip|i=s" => sub { $opt_nameserver_ip = scrub_ip_address( $_[1] ) or die "nameserver-ip argument must be valid nameserver ip" },
+        "epp-repo-id|e=s"   => sub { $opt_epp_repo_id = scrub_roid_suffix( $_[1] ) or die "epp-repo-id must be valid roid suffix" },
+        ""                  => \$opt_stdin,
+    ) or pod2usage( 2 );
+    pod2usage( 1 ) if $opt_help;
+    pod2usage( -exitval => 0, -verbose => 2 ) if $opt_man;
+    my $object_types = scalar grep { $_ } $opt_domain, $opt_registrar, $opt_nameserver, $opt_nameserver_ip;
+    $object_types == 1 or pod2usage( "must specify exactly one of --domain, --registrar, --nameserver, --nameserver-ip" );
+    $opt_domain && !$opt_epp_repo_id and pod2usage( "must specify epp-repo-id" );
+    ( $opt_stdin && @ARGV == 0 ) || ( !$opt_stdin && @ARGV == 1 ) or pod2usage( "must specify exactly one input file" );
+
+    ##################################################################
+    # Process command line arguments
+    #
+    # This section read $opt_* and @ARGV, assigns the $rule and $text variables, and updates $glob_types.
+    #
+    my $rule;
+    my $text;
+
+    if ( defined $opt_domain ) {
+        $rule = 'Domain Name Object query';
+        $glob_types->add_type(
+            'query domain name' => sub {
+                my $value = scrub_hostname( shift ) or return ( 'expected exact domain name' );
+                $value eq $opt_domain or return 'expected matching domain name';
+                return ();
+            }
+        );
+        $glob_types->add_type(
+            'epp repo id' => sub {
+                my $value = scrub_roid( shift ) or return ( 'expected exact epp repo id' );
+                $value =~ /-$opt_epp_repo_id$/ or return ( 'expected exact epp repo id' );
+                return ();
+            }
+        );
+        $glob_types->add_type(
+            'u-label' => sub {
+                my $value = scrub_u_label( shift ) or return ( 'expected u-label matching domain name' );
+                $value eq $opt_domain or return ( 'expected u-label matching domain name' );
+                return ();
+            }
+        );
+    }
+    else {
+        $glob_types->add_type( 'query domain name' => sub { return $glob_types->validate_type( 'hostname', shift ) } );
+    }
+
+    if ( defined $opt_registrar ) {
+        $rule = 'Registrar Object query';
+        $glob_types->add_type(
+            'query registrar name' => sub {
+                my $value = scrub_postal_line( shift ) or return ( 'expected matching registrar name' );
+                $value =~ /$opt_registrar/ or return 'expected matching registrar name';
+                return ();
+            }
+        );
+    }
+    else {
+        $glob_types->add_type( 'query registrar name' => sub { return $glob_types->validate_type( 'postal line', shift ) } );
+    }
+
+    if ( defined $opt_nameserver ) {
+        $rule = 'Name Server Object query';
+        $glob_types->add_type(
+            'query name server' => sub {
+                my $value = scrub_hostname( shift ) or return ( 'expected exact name server' );
+                $value eq $opt_nameserver or return ( 'expected exact name server' );
+                return ();
+            }
+        );
+    }
+    else {
+        $glob_types->add_type( 'query name server' => sub { return $glob_types->validate_type( 'hostname', shift ) } );
+    }
+
+    if ( defined $opt_nameserver_ip ) {
+        $rule = 'Name Server Object query';
+        $glob_types->add_type(
+            'query name server ip' => sub {
+                my $value = scrub_ip_address( shift ) or return ( 'expected exact name server ip' );
+                $value eq $opt_nameserver_ip or return ( 'expected exact name server ip' );
+                return ();
+            }
+        );
+    }
+    else {
+        $glob_types->add_type( 'query name server ip' => sub { return $glob_types->validate_type( 'ip address', shift ) } );
+    }
+
+    if ( @ARGV ) {
+        my $filename = shift @ARGV;
+        $text = read_file( $filename ) or croak "Can't read file '$filename': $OS_ERROR";
+    }
+    else {
+        $text = do { local $/; <STDIN> };
+    }
+
+    ##################################################################
+    # Validate input
+    #
+    # This section assigns the @errors variable.
+    #
+    my @errors;
+
+    my $lexer = PDT::TS::Whois::Lexer->new($text);
+
+    @errors = validate( rule => $rule, lexer => $lexer, grammar => $grammar, types => $glob_types );
+
+    ##################################################################
+    # Display error messages
+    #
+    # This section prints to STDOUT.
+    #
+    for my $error ( @errors ) {
+        say $error;
+    }
+}
+
+main();
