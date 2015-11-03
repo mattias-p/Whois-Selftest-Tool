@@ -209,11 +209,18 @@ use Getopt::Long qw( :config );
 use Pod::Usage;
 
 use File::Slurp;
+use Net::IDN::Encode qw( domain_to_ascii );
 
 use PDT::TS::Whois::Lexer;
 use PDT::TS::Whois::Validator qw( validate );
 use PDT::TS::Whois::Grammar qw( $grammar );
 use PDT::TS::Whois::Types;
+
+binmode STDIN, ':utf8';
+
+Readonly my $datahome => $ENV{XDG_DATA_HOME} || $ENV{HOME} . '/.local/share';    # Base directory relative to which user specific data files should be stored
+Readonly my $datadir     => $datahome . '/Whois-Selftest-Tool';                  # User specific data directory for Whois-Selftest-Tool
+Readonly my $epp_id_path => $datadir . '/epp-repo-ids.txt';                      # EPP Repository Identifiers database
 
 my $glob_types;
 
@@ -259,13 +266,26 @@ sub scrub_postal_line {
 sub scrub_u_label {
     my $value = shift;
     defined $value or return ();
-    $value !~ /[\u3002|\uFF61]/u or return ();
-    return domain_to_ascii(
-        $value,
-        AllowUnassigned        => 0,    # false
-        TransitionalProcessing => 0,    # false
-        UseSTD3ASCIIRules      => 0,    # false
-    );
+
+    $value =~ /[\x{3002}\x{FF61}]/u and return ();
+
+    my $ascii = eval {
+        domain_to_ascii(
+            $value,
+            AllowUnassigned        => 0,    # false
+            TransitionalProcessing => 0,    # false
+            UseSTD3ASCIIRules      => 0,    # false
+        );
+    };
+    if ( my $error = $@ ) {
+        if ( ref $error eq '' ) {
+            if ( $error =~ /^disallowed character / ) {
+                return ();
+            }
+        }
+        croak $error;
+    }
+    return $ascii;
 }
 
 sub scrub_roid {
@@ -392,7 +412,7 @@ sub main {
 
     if ( @ARGV ) {
         my $filename = shift @ARGV;
-        $text = read_file( $filename ) or croak "Can't read file '$filename': $OS_ERROR";
+        $text = read_file( $filename, binmode => ':utf8' ) or croak "Can't read file '$filename': $OS_ERROR";
     }
     else {
         $text = do { local $/; <STDIN> };

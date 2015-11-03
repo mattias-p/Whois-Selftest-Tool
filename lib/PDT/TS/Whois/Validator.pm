@@ -138,7 +138,7 @@ sub _sequence_section {
 
         my ( $key, $params ) = %$elem;
 
-        ref $params eq 'HASH' or confess;
+        ref $params eq 'HASH' or confess "value of key '$key' must be a hashref";
 
         my ( $count, $result ) = _occurances( $state, %$params, key => $key );
         if ( !defined $count ) {
@@ -146,7 +146,31 @@ sub _sequence_section {
                 return;
             }
             else {
-                push @errors, sprintf( "line %d: expected %s", $state->{lexer}->line_no, $key );
+                my ( $token, $token_value, $token_errors ) = $state->{lexer}->peek_line();
+                defined $token or croak 'unexpected return value';
+                ref $token_errors eq 'ARRAY' or croak 'unexpected return value';
+
+                push @errors, @{ $token_errors };
+
+                my $description;
+                if ( $token eq 'field' ) {
+                    ref $token_value eq 'ARRAY' or croak 'unexpected return value';
+                    my ($field_key, undef, undef) = @{ $token_value };
+                    defined $field_key or croak 'unexpected return value';
+
+                    $description = "field '" . $field_key . "'";
+                }
+                elsif ( $token eq 'non-empty line' ) {
+                    defined $token_value && ref $token_value eq '' or croak 'unexpected return value';
+                    my $contents = ( $token_value =~ s/\W+/ /gru );
+
+                    $contents = ( length $contents > 15 ) ? "'" . substr($contents, 0, 15) . "'..." : "'" . $contents . "'";
+                    $description = "non-empty line " . $contents;
+                }
+                else {
+                    $description = $token;
+                }
+                push @errors, sprintf( "line %d: %s not allowed here", $state->{lexer}->line_no, $description );
                 last;
             }
         }
@@ -166,7 +190,7 @@ sub _choice_section {
     for my $key ( keys $section_rule ) {
         my $params = $section_rule->{$key};
 
-        ref $params eq 'HASH' or confess;
+        ref $params eq 'HASH' or confess "value of key '$key' must be a hashref";
         my ( $count, $result ) = _occurances( $state, %$params, key => $key );
         if ( defined $count ) {
             return $result;
@@ -208,7 +232,13 @@ sub _occurances {
             ref $parsed_errors eq 'ARRAY' or confess;
             push @errors, @$parsed_errors;
             $count++;
-            if ( $count == 1 && $parsed eq 'empty field' ) {
+            if ( $parsed eq 'empty field' ) {
+                if ($count != 1) {
+                    push @errors, sprintf("line %d: empty field in repetition '%s'", $state->{lexer}->line_no - 1, $key);
+                }
+                elsif ( $min_occurs > 0 ) {
+                    push @errors, sprintf("line %d: empty required field '%s'", $state->{lexer}->line_no - 1, $key);
+                }
                 last;
             }
         }
@@ -252,6 +282,11 @@ sub _line {
     my $key   = $args{'key'} or croak 'Missing argument: key';
     my $line  = $args{'line'};
     my $type  = $args{'type'};
+    $line || $type or confess;
+    if ( defined $type ) {
+        $line ||= 'field';
+        $line eq 'field' or confess;
+    }
 
     my $token;
     my $token_value;
@@ -302,7 +337,11 @@ sub _line {
         ref $errors eq 'ARRAY' or confess;
     }
 
-    if ( $token eq 'field' ) {
+
+    if ( $line eq 'any line' || $line eq 'non-empty line' ) {
+        # skip validations
+    }
+    elsif ( $token eq 'field' ) {
 
         ref $token_value eq 'ARRAY' or confess;
 
@@ -311,11 +350,11 @@ sub _line {
         ref $translations eq 'ARRAY' or confess;
 
         for my $translation ( @$translations ) {
-            push @$errors, _validate_type( $state, 'key translation', $translation );
+            push @$errors, _validate_type( $state, type_name => 'key translation', value => $translation, prefix => "invalid key translation for field '$key', " );
         }
 
         if ( $type && $subtype eq 'field' ) {
-            push @$errors, _validate_type( $state, $type, $value );
+            push @$errors, _validate_type( $state, type_name => $type, value => $value, prefix => "invalid value for field '$key', " );
         }
     }
     elsif ( $token eq 'roid line' ) {
@@ -324,15 +363,15 @@ sub _line {
 
         my ( $roid, $hostname ) = @$token_value;
 
-        push @$errors, _validate_type( $state, 'roid', $roid );
+        push @$errors, _validate_type( $state, type_name => 'roid', value => $roid );
 
-        push @$errors, _validate_type( $state, 'hostname', $hostname );
+        push @$errors, _validate_type( $state, type_name => 'hostname', value => $hostname );
     }
     elsif ( $token eq 'last update line' ) {
         $token_value && ref $token_value eq '' or confess;
         my $timestamp = $token_value;
 
-        push @$errors, _validate_type( $state, 'time stamp', $timestamp );
+        push @$errors, _validate_type( $state, type_name => 'time stamp', value => $timestamp );
     }
     elsif ( $token ne 'any line' && $token ne 'empty line' && $token ne 'non-empty line' && $token ne 'multiple name servers line' && $token ne 'awip line' && $token ne 'EOF' ) {
         croak "unhandled line type: $token";
@@ -352,18 +391,20 @@ sub _set_empty_kind {
         return ();
     }
     else {
-        return ( sprintf( "line %d: mixed empty field markups", $state->{lexer}->line_no ) );
+        return ( sprintf( "line %d: either all empty optional fields must be present or no empty optional field may be present", $state->{lexer}->line_no ) );
     }
 }
 
 sub _validate_type {
     my $state     = shift or croak 'Missing argument: $state';
-    my $type_name = shift or croak 'Missing argument: $type_name';
-    my $value     = shift or croak 'Missing argument: $value';
+    my %args      = @_;
+    my $type_name = $args{type_name} or croak 'Missing argument: type_name';
+    my $value     = $args{value} or croak 'Missing argument: value';
+    my $prefix    = $args{prefix} || '';
 
     my @errors;
     for my $error ( $state->{types}->validate_type( $type_name, $value ) ) {
-        push @errors, sprintf("line %s: %s", $state->{lexer}->line_no, $error);
+        push @errors, sprintf("line %s: %s%s", $state->{lexer}->line_no, $prefix, $error);
     }
     return @errors;
 }
