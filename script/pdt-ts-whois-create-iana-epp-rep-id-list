@@ -52,14 +52,13 @@ use Text::CSV_XS 0.90;
 use Text::CSV;
 
 # General settings that cannot be changed.
-my $datadir     = $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                       # Where PDT conf reside
-my $epp_id_file = 'iana-epp-rep-id.txt';                                                  # This must be the same file as pdt-ts-whois expects
-my $iana_file   = 'epp-repository-ids-1.csv';
-my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/' . $iana_file;    # This is assumed to be a http(s) URL
-my $wget        = '/usr/bin/wget';                                                        # wget to fetch file with
-my $timeout     = '/usr/bin/timeout';                                                     # Timeout program to control that wget does not hang too long.
-my $fileprog    = "/usr/bin/file";                                                        # To test encoding of file before we process it.
-my @ext_progs   = ( $wget, $timeout, $fileprog );                                         # To be able to test that they are there and executable
+my $datadir     = $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                                  # Where PDT conf reside
+my $epp_id_file = 'iana-epp-rep-id.txt';                                                             # This must be the same file as pdt-ts-whois expects
+my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # This is assumed to be a http(s) URL
+my $wget        = '/usr/bin/wget';                                                                   # wget to fetch file with
+my $timeout     = '/usr/bin/timeout';                                                                # Timeout program to control that wget does not hang too long.
+my $fileprog    = "/usr/bin/file";                                                                   # To test encoding of file before we process it.
+my @ext_progs   = ( $wget, $timeout, $fileprog );                                                    # To be able to test that they are there and executable
 my $tempdir     = tempdir( CLEANUP => 1 );
 
 # Regular expressions
@@ -83,11 +82,8 @@ Readonly my @CSV_exp_header => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Con
 # CLI arguments - defined early to be usable anywhere
 my $opt_help;         # Ask for help
 my $opt_version;      # Print version
-my $opt_devel_out;    # If set, then write file (txt) in current directory (for debugging/development)
-my $opt_devel_in;     # If set, then fetch file (cvs) in current directory (for debugging/development)
 
-# Will be reset after options are evaluated unless --devel-out is selected.
-my $epp_id_path = $epp_id_file;    # Normal value should be $datadir/${epp_id_file}, where whois script expects.
+my $epp_id_path = $datadir . '/' . $epp_id_file;    # Normal value should be $datadir/$epp_id_file, where whois script expects.
 
 # Extract the script name
 my $me = basename( $0 );
@@ -368,8 +364,6 @@ sub parse {
 GetOptions(
     'help|?'    => \$opt_help,
     'version'   => \$opt_version,
-    'devel-out' => \$opt_devel_out,
-    'devel-in'  => \$opt_devel_in,
 ) || pod2usage( -verbose => 0, -exitval => 2 );
 
 # Error if there are extra parameters on the commnd line. Not permitted.
@@ -383,19 +377,8 @@ pod2usage(
 ) if $opt_version;
 pod2usage( -verbose => 2, -exitval => 1 ) if $opt_help;
 
-# Set full path unless we are developing/debugging
-$epp_id_path = $datadir . '/' . ${epp_id_file} unless $opt_devel_out;
-
 # Start -- print a nice message
 info( "Start $me version $VERSION" );
-
-# Inform if some development and debugging related options are selected
-if ( $opt_devel_out ) {
-    info( "Option '--devel-out' was selected." );
-}
-if ( $opt_devel_in ) {
-    info( "Option '--devel-in' was selected." );
-}
 
 # Verify that externa programs are there and executable by me
 foreach my $prog ( @ext_progs ) {
@@ -411,23 +394,16 @@ foreach my $prog ( @ext_progs ) {
 my ( $workfilename ) = $tempdir . '/work';
 
 # Fetch the file to the temporary work file
-if ( $opt_devel_in ) {    # If we do development, not normally
-    unless ( &File::Copy::copy( $iana_file, $workfilename ) ) {
-        croak( "Could not copy $iana_file to $workfilename: $!" );
-    }
+my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
+my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
+my $cmd = "$timeout -k $kto $to $wget -nv -O $workfilename ${iana_url}";
+my @log = qx/$cmd 2>&1/;
+chomp @log;
+if ( $? == 0 ) {
+    info( "@log" );
 }
 else {
-    my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
-    my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
-    my $cmd = "$timeout -k $kto $to $wget -nv -O $workfilename ${iana_url}";
-    my @log = qx/$cmd 2>&1/;
-    chomp @log;
-    if ( $? == 0 ) {
-        info( "@log" );
-    }
-    else {
-        croak( "@log\nFailed running '$cmd'" );
-    }
+    croak( "@log\nFailed running '$cmd'" );
 }
 
 # Check the fetched file. It must be an ascii or utf-8 file.
