@@ -40,7 +40,7 @@ use DateTime;
 use Encode;
 use File::Basename;
 use File::Copy;
-use File::Temp;
+use File::Temp qw( tempdir );
 use Getopt::Long;
 use Pod::Usage;
 use Readonly;
@@ -59,6 +59,7 @@ my $fileprog    = "/usr/bin/file";                                              
 my @ext_progs   = ( $wget, $timeout, $fileprog );                                         # To be able to test that they are there and executable
 my $filemode    = oct( "0664" );                                                          # To be set on target file. It must be writable by the pdt group.
 my $gid         = getgrnam 'pdt';                                                         # gid of group "pdt"
+my $tempdir     = tempdir( CLEANUP => 1 );
 
 # Regular expressions
 my $valid_epp_rep_id = my $valid_id_char = &create_re_for_char_range;
@@ -89,9 +90,6 @@ my $epp_id_path = $epp_id_file;    # Normal value should be ${confdir}/${epp_id_
 
 # Extract the script name
 my $me = basename( $0 );
-
-# Array of created temporary files. File names are added below.
-my @tempfiles;
 
 # Print message to standard output
 sub message {
@@ -141,20 +139,6 @@ sub clean_and_exit {
     # Exit code, null unless set in call
     my ( $code ) = @_;
 
-    # From array remove tempfiles
-    foreach my $f ( @tempfiles ) {
-        if ( -e $f ) {
-            unless ( unlink $f ) {
-
-                # We could come here from differents point in the script.
-                &message( "ERROR", "Could not unlink $f: $!" );
-                &message( "ERROR", "Unknow state. Check previous messages." );
-                &message( "ERROR", "Exiting with errors." );
-                exit 1.;
-            }
-        }
-    }
-
     # A message
     if ( $code ) {
         &message( "ERROR", "Exiting after previos error. No file saved." );
@@ -166,22 +150,6 @@ sub clean_and_exit {
     # exit
     exit $code;
 };    # sub clean_and_exit ###########################################
-
-# Create a temporary file. The file created and closed, and the name is
-# returned. The directory to create it under is the input variable
-sub create_temp_file {
-    my ( $dir ) = @_;
-    my ( $name );
-    $dir = "/tmp" unless $dir;
-    if ( ( undef, $name ) = File::Temp::tempfile( UNLINK => 0, DIR => $dir, OPEN => 0 ) ) {
-        push @tempfiles, $name;
-    }
-    else {
-        &message( "ERROR", "Cannot create temporary file under $dir: $!" );
-        &clean_and_exit( 1 );
-    }
-    return ( $name );
-};    # sub create_temp_file #############################################
 
 # Trim leading and trailing whitespace (copied from csvimp)
 sub trim_space {
@@ -487,7 +455,7 @@ foreach my $prog ( @ext_progs ) {
 }
 
 # Create a temporary working file to put the file which we are about to fetch from IANA into.
-my ( $workfilename ) = &create_temp_file( "/tmp" );
+my ( $workfilename ) = $tempdir . '/work';
 
 # Fetch the file to the temporary work file
 if ( $opt_devel_in ) {    # If we do development, not normally
@@ -536,7 +504,7 @@ else {
 };
 
 # Create a new list file under a temporary file name
-my ( $new_lf_name ) = &create_temp_file( "$confdir" );
+my ( $new_lf_name ) = $tempdir . '/list';
 
 # Now we are about to parse the tempfile and push to the new list file in correct format
 
