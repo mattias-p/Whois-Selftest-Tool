@@ -1,8 +1,8 @@
 #! /usr/bin/perl
 
-# Fetches a data base with registered EPP Repository Identifiers from IANA for the Whois script. The datebase is, after 
-# conversion, saved into /etc/pdt/iana-epp-rep-id.txt, which is used by /usr/bin/pdt-ts-whois. The full name 
-# /etc/pdt/iana-epp-rep-id.txt is hardcode in this script and the Whois script. 
+# Fetches a data base with registered EPP Repository Identifiers from IANA for the Whois script. The datebase is, after
+# conversion, saved into /etc/pdt/iana-epp-rep-id.txt, which is used by /usr/bin/pdt-ts-whois. The full name
+# /etc/pdt/iana-epp-rep-id.txt is hardcode in this script and the Whois script.
 #
 # This script is designed to be run from cron, but it could also be run from the command line. When run from cron,
 # the --cron switch should be used so that all messages go to syslog. Run this script with --help to see all switches.
@@ -22,7 +22,7 @@
 # 7. The new list file gets correct permissions.
 # 8. Finally, the new list file is renamed to the target file name, iana-epp-rep-id.txt.
 #
-# During the running of the script, if any errors are found (besides incorrect Identifiers), the script 
+# During the running of the script, if any errors are found (besides incorrect Identifiers), the script
 # terminates and the temporary files are removed.
 
 # Revision history:
@@ -46,20 +46,20 @@ use Encode;
 my $VERSION = '1.0';
 
 # General settings that cannot be changed.
-my $confdir     = '/etc/pdt';                   # Where PDT conf reside
-my $epp_id_file = 'iana-epp-rep-id.txt';      # This must be the same file as pdt-ts-whois expects
+my $confdir     = '/etc/pdt';                                                             # Where PDT conf reside
+my $epp_id_file = 'iana-epp-rep-id.txt';                                                  # This must be the same file as pdt-ts-whois expects
 my $iana_file   = 'epp-repository-ids-1.csv';
-my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/' . $iana_file; # This is assumed to be a http(s) URL
-my $wget        = '/usr/bin/wget';              # wget to fetch file with
-my $timeout     = '/usr/bin/timeout';           # Timeout program to control that wget does not hang too long.
-my $logger      = '/usr/bin/logger';            # logger to send log messages to syslog with
-my $fileprog    = "/usr/bin/file";              # To test encoding of file before we process it.
-my @ext_progs   = ($wget, $timeout, $logger, $fileprog); # To be able to test that they are there and executable
-my $filemode    = oct("0664");                  # To be set on target file. It must be writable by the pdt group.
-my $gid         = getgrnam 'pdt';               # gid of group "pdt"
+my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/' . $iana_file;    # This is assumed to be a http(s) URL
+my $wget        = '/usr/bin/wget';                                                        # wget to fetch file with
+my $timeout     = '/usr/bin/timeout';                                                     # Timeout program to control that wget does not hang too long.
+my $logger      = '/usr/bin/logger';                                                      # logger to send log messages to syslog with
+my $fileprog    = "/usr/bin/file";                                                        # To test encoding of file before we process it.
+my @ext_progs   = ( $wget, $timeout, $logger, $fileprog );                                # To be able to test that they are there and executable
+my $filemode    = oct( "0664" );                                                          # To be set on target file. It must be writable by the pdt group.
+my $gid         = getgrnam 'pdt';                                                         # gid of group "pdt"
 
-# Regular expressions 
-my $valid_epp_rep_id = my $valid_id_char = &create_re_for_char_range ;
+# Regular expressions
+my $valid_epp_rep_id = my $valid_id_char = &create_re_for_char_range;
 
 # For matching EPP Rep IDs
 $valid_epp_rep_id = '^' . $valid_epp_rep_id . '*$';
@@ -69,27 +69,25 @@ $valid_epp_rep_id = qr/$valid_epp_rep_id/o;
 $valid_id_char = qr/$valid_id_char/o;
 
 # The expected header structure of the fetched CSV file
-Readonly my $CSV_EPP_Rep_ID       => 'EPP Repository ID';
-Readonly my $CSV_Change_Ctrl      => 'Change Controller';
-Readonly my $CSV_Ref_Cont         => 'Reference/Contact';
-Readonly my $CSV_Reg_Date         => 'Registration Date';
+Readonly my $CSV_EPP_Rep_ID  => 'EPP Repository ID';
+Readonly my $CSV_Change_Ctrl => 'Change Controller';
+Readonly my $CSV_Ref_Cont    => 'Reference/Contact';
+Readonly my $CSV_Reg_Date    => 'Registration Date';
 
-Readonly my @CSV_exp_header       => (
-    $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Cont, $CSV_Reg_Date,
-    );
+Readonly my @CSV_exp_header => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Cont, $CSV_Reg_Date, );
 
 # CLI arguments - defined early to be usable anywhere
-my $opt_help;                   # Ask for help
-my $opt_cron;                   # Cron mode (messages through syslog)
-my $opt_version;                # Print version
-my $opt_devel_out;              # If set, then write file (txt) in current directory (for debugging/development)
-my $opt_devel_in;               # If set, then fetch file (cvs) in current directory (for debugging/development)
+my $opt_help;         # Ask for help
+my $opt_cron;         # Cron mode (messages through syslog)
+my $opt_version;      # Print version
+my $opt_devel_out;    # If set, then write file (txt) in current directory (for debugging/development)
+my $opt_devel_in;     # If set, then fetch file (cvs) in current directory (for debugging/development)
 
 # Can be reset by option
-my $cron = 0;                                                  # Should be true if run by cron
+my $cron = 0;         # Should be true if run by cron
 
 # Will be reset after options are evaluated unless --devel-out is selected.
-my $epp_id_path = $epp_id_file; # Normal value should be ${confdir}/${epp_id_file}, where whois script expects.
+my $epp_id_path = $epp_id_file;    # Normal value should be ${confdir}/${epp_id_file}, where whois script expects.
 
 # Extract the script name
 my $me = basename( $0 );
@@ -136,27 +134,24 @@ sub message {
     }
 };    # sub message ##################################################
 
-
 # Remove non-ascii from string to make it safe for syslog
 sub make_syslog_safe {
-    my ( $text ) = @_; # Only first record
-    utf8::decode ($text); # Treat as UTF-8 
-    $text =~ tr/\x{0020}-\x{007E}/?/c; # Clean from non-ascii or non-printable.
-    return ($text);
-};
-
+    my ( $text ) = @_;        # Only first record
+    utf8::decode( $text );    # Treat as UTF-8
+    $text =~ tr/\x{0020}-\x{007E}/?/c;    # Clean from non-ascii or non-printable.
+    return ( $text );
+}
 
 # Remove any code point outside ASCII or the permitted range to be safe.
 sub make_file_safe {
-    my ( $text ) = @_; # Only first record
-    utf8::decode ($text); # Treat as UTF-8
-    my (@chars) = split (//, $text);
-    foreach my $c (@chars) {
-	$c = '?' unless $c =~ /[\x{0020}-\x{007E}]/ or $c =~ /$valid_id_char/;
-    };
-    return ($text);
-};
-
+    my ( $text ) = @_;                    # Only first record
+    utf8::decode( $text );                # Treat as UTF-8
+    my ( @chars ) = split( //, $text );
+    foreach my $c ( @chars ) {
+        $c = '?' unless $c =~ /[\x{0020}-\x{007E}]/ or $c =~ /$valid_id_char/;
+    }
+    return ( $text );
+}
 
 # Remove temporary files, print/send a message and exit. All exits go
 # through this subroutine.
@@ -191,7 +186,6 @@ sub clean_and_exit {
     exit $code;
 };    # sub clean_and_exit ###########################################
 
-
 # Create a temporary file. The file created and closed, and the name is
 # returned. The directory to create it under is the input variable
 sub create_temp_file {
@@ -208,20 +202,19 @@ sub create_temp_file {
     return ( $name );
 };    # sub create_temp_file #############################################
 
-
 # Trim leading and trailing whitespace (copied from csvimp)
 sub trim_space {
-    my ($string) = @_;
+    my ( $string ) = @_;
     $string =~ s{\A \s* | \s* \z}{}gx;
     return $string;
 }
 
-
 # Read and normalize the lines in the CSV file (copied from csvimp and modified)
 sub read_csv {
-    my ( $fh, # Must be a file handler ref
-	 $csv # Must be a CSV object ref
-	) = @_; 
+    my (
+        $fh,    # Must be a file handler ref
+        $csv    # Must be a CSV object ref
+    ) = @_;
 
     # Read line
     my $octets = readline $fh;
@@ -229,30 +222,30 @@ sub read_csv {
 
     # Decode characters
     my $line = eval { decode( 'UTF-8', $octets, Encode::FB_CROAK ) };
-    if ( my $exception = $@ ) { # Errors
+    if ( my $exception = $@ ) {    # Errors
         if ( $exception =~ m{\Autf8 (.*) does not map to Unicode at }ms ) {
-	    &message( "ERROR", "Non unicode character found in record " . $csv->record_number . " in fetched file.");
-	    &clean_and_exit( 1 );
+            &message( "ERROR", "Non unicode character found in record " . $csv->record_number . " in fetched file." );
+            &clean_and_exit( 1 );
         }
         else {
-	    &message( "ERROR", $exception);
-	    &clean_and_exit( 1 );
+            &message( "ERROR", $exception );
+            &clean_and_exit( 1 );
         }
     }
 
     # Normalize characters
-    $line =~ s/[\r\n]+$//; # Remove line terminators.
-    $line =~ tr/\t/ /; # Replace TAB with SPACE.
-    if ($line =~ m{[\x00-\x1f]}xms) { # Some other control character in ASCII range
-	&message( "ERROR", "Control character found in record " . $csv->record_number . " in fetched file.");
-	&clean_and_exit( 1 );
-    };
+    $line =~ s/[\r\n]+$//;         # Remove line terminators.
+    $line =~ tr/\t/ /;             # Replace TAB with SPACE.
+    if ( $line =~ m{[\x00-\x1f]}xms ) {    # Some other control character in ASCII range
+        &message( "ERROR", "Control character found in record " . $csv->record_number . " in fetched file." );
+        &clean_and_exit( 1 );
+    }
 
     # Parse CSV
-    unless ($csv->parse($line)) {
-	&message( "ERROR", "Invalid csv found in record " . $csv->record_number + 1 . ": " . $csv->error_input || 'error');
-	&clean_and_exit( 1 );
-    };
+    unless ( $csv->parse( $line ) ) {
+        &message( "ERROR", "Invalid csv found in record " . $csv->record_number + 1 . ": " . $csv->error_input || 'error' );
+        &clean_and_exit( 1 );
+    }
 
     # Trim field whitespace
     my @trimmed_fields = map { trim_space $_ } $csv->fields();
@@ -264,45 +257,46 @@ sub read_csv {
     else {
         return [];
     }
-};
+}
 
-# From the first field, extract the two reperesentations of the EPP Repository Identifier.  Validate and, if valid, 
+# From the first field, extract the two reperesentations of the EPP Repository Identifier.  Validate and, if valid,
 # return the ID. Else break.
 sub extract_and_validate_id {
-    my ($fi, $no) = @_; # The field content and record no.
+    my ( $fi, $no ) = @_;    # The field content and record no.
 
-    utf8::decode ($fi); # Must be UTF-8
+    utf8::decode( $fi );     # Must be UTF-8
 
-    # Split into two parts, must not be anything else. The two parts must represent the same thing. Real examples on next 
+    # Split into two parts, must not be anything else. The two parts must represent the same thing. Real examples on next
     # two lines after "# ":
     # ENUMAT, #x0045 #x004E #x0055 #x004D #x0041 #x0054
     # MX, #x004D #x0058
     unless ( $fi =~ /(^[^, ]+) *,([ #x0-9a-fA-F]+)$/ ) {
-	# Be liberal on space before comma.
 
-	my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe ($fi) . '<<';
+        # Be liberal on space before comma.
 
-	&message( "INFO", $syslog_msg);
-	&message( "INFO", "The ID is ignored and not included in the list.");
+        my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe( $fi ) . '<<';
 
-	# We set the string to a comment
-	return 'ID expression in record $no could not be parsed: "' . &make_syslog_safe ($fi) . '"';
-    };
+        &message( "INFO", $syslog_msg );
+        &message( "INFO", "The ID is ignored and not included in the list." );
 
-    my $id = $1; # This should be equal to the EPP Rep ID
-    my $idchar = $2; # This should be a textual representation of the code points.
+        # We set the string to a comment
+        return 'ID expression in record $no could not be parsed: "' . &make_syslog_safe( $fi ) . '"';
+    }
+
+    my $id     = $1;    # This should be equal to the EPP Rep ID
+    my $idchar = $2;    # This should be a textual representation of the code points.
 
     # Is the code point representation valid?
-    unless ($idchar =~ /^( *#x[0-9a-fA-F]{4,6})+ *$/ ) {
+    unless ( $idchar =~ /^( *#x[0-9a-fA-F]{4,6})+ *$/ ) {
 
-	my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe ($fi) . '<<';
+        my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe( $fi ) . '<<';
 
-	&message( "INFO", $syslog_msg);
-	&message( "INFO", "The ID is ignored and not included in the list.");
+        &message( "INFO", $syslog_msg );
+        &message( "INFO", "The ID is ignored and not included in the list." );
 
-	# We set the string to a comment
-	return '# ID ignored, no match: "' . &make_file_safe ($fi) . '" vs. "' . $idchar . '"';
-    };
+        # We set the string to a comment
+        return '# ID ignored, no match: "' . &make_file_safe( $fi ) . '" vs. "' . $idchar . '"';
+    }
 
     # We check the Identifier and replace it with a comment unless valid.
     #
@@ -311,51 +305,50 @@ sub extract_and_validate_id {
     # 3. Are the code points legal in this context?
 
     # The same string?
-    my $id2 = &make_string_from_code_points ($idchar);
-    unless ($id eq $id2) {
-	my $syslog_msg = "Second representation of ID in record $no does not match first: >>" . 
-	    &make_syslog_safe ($id) . "<< vs. >>$idchar<<";
+    my $id2 = &make_string_from_code_points( $idchar );
+    unless ( $id eq $id2 ) {
+        my $syslog_msg = "Second representation of ID in record $no does not match first: >>" . &make_syslog_safe( $id ) . "<< vs. >>$idchar<<";
 
-	&message( "INFO", $syslog_msg);
-	&message( "INFO", "The ID is ignored and not included in the list.");
+        &message( "INFO", $syslog_msg );
+        &message( "INFO", "The ID is ignored and not included in the list." );
 
-	# We set the string to a comment
-	return '# ID ignored, no match: "' . &make_file_safe ($id) . '" vs. "' . $idchar . '"';
-    };
+        # We set the string to a comment
+        return '# ID ignored, no match: "' . &make_file_safe( $id ) . '" vs. "' . $idchar . '"';
+    }
 
     # Lenght
-    if (length $id > 8) {
-	&message( "INFO", "ID in record $no is too long (more than 8 characters): " . &make_syslog_safe ($fi) );
-	&message( "INFO", "The ID is ignored and not included in the list.");
+    if ( length $id > 8 ) {
+        &message( "INFO", "ID in record $no is too long (more than 8 characters): " . &make_syslog_safe( $fi ) );
+        &message( "INFO", "The ID is ignored and not included in the list." );
 
-	# We set the string to a comment
-	return '# ID ignored, too long: "' . &make_file_safe ($id) . '"';
-    };
+        # We set the string to a comment
+        return '# ID ignored, too long: "' . &make_file_safe( $id ) . '"';
+    }
 
-    # Only legal 
-    unless ($id =~ /$valid_epp_rep_id/) {
-	&message( "INFO", "Illegal character in ID in record $no: " . &make_syslog_safe ($fi) );
-	&message( "INFO", "The ID is ignored and not included in the list.");
+    # Only legal
+    unless ( $id =~ /$valid_epp_rep_id/ ) {
+        &message( "INFO", "Illegal character in ID in record $no: " . &make_syslog_safe( $fi ) );
+        &message( "INFO", "The ID is ignored and not included in the list." );
 
-	# We set the string to a comment
-	return '# ID ignored, illegal code point in string: "' . &make_file_safe ($id) . '"';
-    };
+        # We set the string to a comment
+        return '# ID ignored, illegal code point in string: "' . &make_file_safe( $id ) . '"';
+    }
 
     # We only return if OK.
-    return $id; 
-};
+    return $id;
+}
 
 # Get a string of code points in the form that is used in the database and convert that
 # into a string.
 sub make_string_from_code_points {
-    my ($str) = @_;
+    my ( $str ) = @_;
 
-    $str =~ s/ +//g; # Remove space from code point string
+    $str =~ s/ +//g;    # Remove space from code point string
 
     # Make it to a string of characters
     $str =~ s/#x([0-9a-zA-Z]+)/pack "U*", hex($1)/eg;
     return $str;
-};
+}
 
 # Read the __DATA__ section with code point ranges and create a string that can be used directly
 # in a regular expression.
@@ -364,42 +357,45 @@ sub create_re_for_char_range {
     my @ranges;
 
     # Read from the __DATA__ section at the end of this file
-    while ($line = <DATA>) {
+    while ( $line = <DATA> ) {
 
-	# Remove EOL and any trailing space
-	$line =~ s/\s+$//;
-	# Ignore comment lines.
-	next if $line =~ /^#/;
-	# Ignore empty lines.
-	next if $line =~ /^\s*$/;
+        # Remove EOL and any trailing space
+        $line =~ s/\s+$//;
 
-	my @ra = split (/ +\| +/, $line);
+        # Ignore comment lines.
+        next if $line =~ /^#/;
 
-	# Each element in the array should either be one code point (e.g. "#x3007") or a range (e.g. "[#x0F20-#x0F29]").
-	# Convert it to use in a perl tr/// expression.
-	foreach my $e (@ra) {
+        # Ignore empty lines.
+        next if $line =~ /^\s*$/;
 
-	    if ($e =~ /^#x([0-9a-fA-F]{4,6})$/) {
-		push @ranges, "\x{5C}x{".$1.'}';
-	    } elsif ($e =~ /^\[#x([0-9a-fA-F]{4,6})-#x([0-9a-fA-F]{4,6})\]$/) {
-		push @ranges, "\x{5C}x{".$1."}-\x{5C}x{".$2.'}';
-	    } else {
-		&message( "ERROR", "Illegal character range in __DATA__ section in this script.");
-		&clean_and_exit( 1 );
-	    };
+        my @ra = split( / +\| +/, $line );
 
-	};
-    };
+        # Each element in the array should either be one code point (e.g. "#x3007") or a range (e.g. "[#x0F20-#x0F29]").
+        # Convert it to use in a perl tr/// expression.
+        foreach my $e ( @ra ) {
+
+            if ( $e =~ /^#x([0-9a-fA-F]{4,6})$/ ) {
+                push @ranges, "\x{5C}x{" . $1 . '}';
+            }
+            elsif ( $e =~ /^\[#x([0-9a-fA-F]{4,6})-#x([0-9a-fA-F]{4,6})\]$/ ) {
+                push @ranges, "\x{5C}x{" . $1 . "}-\x{5C}x{" . $2 . '}';
+            }
+            else {
+                &message( "ERROR", "Illegal character range in __DATA__ section in this script." );
+                &clean_and_exit( 1 );
+            }
+
+        }
+    }
 
     # Return a string for a regular expression.
-    return '[' . join ('', @ranges) . ']';
+    return '[' . join( '', @ranges ) . ']';
 
-};
-
+}
 
 # Parse indata stream (based on code from "csvimp")
 sub parse {
-    my ($fh) = @_; # Must be a file handler ref
+    my ( $fh ) = @_;    # Must be a file handler ref
 
     my $csv = Text::CSV->new( { sep_char => ',' } );
     my @header;
@@ -407,54 +403,58 @@ sub parse {
     my $fields;
 
     # CSV header line
-    unless ($fields = &read_csv( $fh, $csv ) ) {
-	&message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file.");
-	&clean_and_exit( 1 );
-    };
+    unless ( $fields = &read_csv( $fh, $csv ) ) {
+        &message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file." );
+        &clean_and_exit( 1 );
+    }
     @header = @{$fields};
-    
+
     # Compare the header in the actual CSV file with the stored value of expected header fields.
     for ( my $i = 0 ; $i < @CSV_exp_header ; $i++ ) {
         my $actual = ( $i < @header ) ? $header[$i] : 'end of line';
-	unless ($CSV_exp_header[$i] eq $header[$i]) {
-	    &message( "ERROR", "Column number " . $i + 1 . ": expected header '" . $CSV_exp_header[$i] . "', got '" . $actual . "' in fetched file.");
-	    &clean_and_exit( 1 );
-	};
+        unless ( $CSV_exp_header[$i] eq $header[$i] ) {
+            &message( "ERROR", "Column number " . $i + 1 . ": expected header '" . $CSV_exp_header[$i] . "', got '" . $actual . "' in fetched file." );
+            &clean_and_exit( 1 );
+        }
     }
-    if (@header > @CSV_exp_header) {
-	&message( "ERROR", "Extra header after " . $CSV_exp_header[$#CSV_exp_header] . " in fetched file.");
-	&clean_and_exit( 1 );
-    };
+    if ( @header > @CSV_exp_header ) {
+        &message( "ERROR", "Extra header after " . $CSV_exp_header[$#CSV_exp_header] . " in fetched file." );
+        &clean_and_exit( 1 );
+    }
 
     # Data lines
     #
     # Read first record
-    unless ($fields = read_csv( $fh, $csv ) ) {
-	&message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file.");
-	&clean_and_exit( 1 );
-    };
+    unless ( $fields = read_csv( $fh, $csv ) ) {
+        &message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file." );
+        &clean_and_exit( 1 );
+    }
+
     #
     # For each record (next record is read in the end of the loop)
     while ( defined $fields && @{$fields} > 0 ) {
-	#
-	# We will only consider the first column, "EPP Repository ID", which must be parsed
 
-	# Empty ID?
-	unless ($fields->[0]) {
-	    &message( "ERROR", "Unexpected empty ID in record " . $csv->record_number . " in fetched file.");
-	    &clean_and_exit( 1 );
-	};
-	
-	# Get the ID extracted from the first field.
-	my ($id);
-	if ($id = &extract_and_validate_id ($fields->[0], $csv->record_number) ) {
-	    push @records, $id;
-	} else {
-	    # We should never come here because the previous call will stop the script if there are errors.
-	    die "Script error ";
-	};
+        #
+        # We will only consider the first column, "EPP Repository ID", which must be parsed
 
-	# Read next record
+        # Empty ID?
+        unless ( $fields->[0] ) {
+            &message( "ERROR", "Unexpected empty ID in record " . $csv->record_number . " in fetched file." );
+            &clean_and_exit( 1 );
+        }
+
+        # Get the ID extracted from the first field.
+        my ( $id );
+        if ( $id = &extract_and_validate_id( $fields->[0], $csv->record_number ) ) {
+            push @records, $id;
+        }
+        else {
+
+            # We should never come here because the previous call will stop the script if there are errors.
+            die "Script error ";
+        }
+
+        # Read next record
         $fields = &read_csv( $fh, $csv );
     }
     return @records;
@@ -462,11 +462,11 @@ sub parse {
 
 # Parse CLI arguments
 GetOptions(
-    'help|?'                => \$opt_help,
-    'version'               => \$opt_version,
-    'cron'                  => \$opt_cron,
-    'devel-out'              => \$opt_devel_out,
-    'devel-in'               => \$opt_devel_in,
+    'help|?'    => \$opt_help,
+    'version'   => \$opt_version,
+    'cron'      => \$opt_cron,
+    'devel-out' => \$opt_devel_out,
+    'devel-in'  => \$opt_devel_in,
 ) || pod2usage( -verbose => 0, -exitval => 2 );
 
 # Error if there are extra parameters on the commnd line. Not permitted.
@@ -490,49 +490,50 @@ $epp_id_path = ${confdir} . '/' . ${epp_id_file} unless $opt_devel_out;
 &message( "INFO", "Start $me version $VERSION" );
 
 # Inform if some development and debugging related options are selected
-if ($opt_devel_out) {
-    &message( "INFO", "Option '--devel-out' was selected.");
-};
-if ($opt_devel_in) {
-    &message( "INFO", "Option '--devel-in' was selected.");
-};
+if ( $opt_devel_out ) {
+    &message( "INFO", "Option '--devel-out' was selected." );
+}
+if ( $opt_devel_in ) {
+    &message( "INFO", "Option '--devel-in' was selected." );
+}
 
 # Verify that externa programs are there and executable by me
-foreach my $prog (@ext_progs) {
-    unless (-e $prog) {
-	&message( "ERROR", "External program $prog is missing." );
-	&clean_and_exit( 1 );
-    };
-    unless (-x $prog) {
-	&message( "ERROR", "External program $prog is not executable." );
-	&clean_and_exit( 1 );
-    };
-};
+foreach my $prog ( @ext_progs ) {
+    unless ( -e $prog ) {
+        &message( "ERROR", "External program $prog is missing." );
+        &clean_and_exit( 1 );
+    }
+    unless ( -x $prog ) {
+        &message( "ERROR", "External program $prog is not executable." );
+        &clean_and_exit( 1 );
+    }
+}
 
 # Create a temporary working file to put the file which we are about to fetch from IANA into.
 my ( $workfilename ) = &create_temp_file( "/tmp" );
 
 # Fetch the file to the temporary work file
-if ($opt_devel_in) { # If we do development, not normally
-    unless ( &File::Copy::copy( $iana_file, $workfilename) ) {
-	&message( "ERROR", "Could not copy $iana_file to $workfilename: $!" );
-	&clean_and_exit( 1 );
-    };
-} else {
-    my $to = 1200; # Timeout after 20 minutes if wget hangs
-    my $kto = 20; # Send a KILL after 20 more seconds, if needed.
+if ( $opt_devel_in ) {    # If we do development, not normally
+    unless ( &File::Copy::copy( $iana_file, $workfilename ) ) {
+        &message( "ERROR", "Could not copy $iana_file to $workfilename: $!" );
+        &clean_and_exit( 1 );
+    }
+}
+else {
+    my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
+    my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
     my $cmd = "$timeout -k $kto $to $wget -nv -O $workfilename ${iana_url}";
     my @log = qx/$cmd 2>&1/;
     chomp @log;
     if ( $? == 0 ) {
-	&message( "INFO", "@log" );
+        &message( "INFO", "@log" );
     }
     else {
-	&message( "ERROR", "@log" );
-	&message( "ERROR", "Failed running '$cmd'" );
-	&clean_and_exit( 1 );
+        &message( "ERROR", "@log" );
+        &message( "ERROR", "Failed running '$cmd'" );
+        &clean_and_exit( 1 );
     }
-};
+}
 
 # Check the fetched file. It must be an ascii or utf-8 file.
 {
@@ -541,18 +542,20 @@ if ($opt_devel_in) { # If we do development, not normally
     chomp @log;
     if ( $? == 0 ) {
 
-	if ($log[0] eq 'us-ascii' or $log[0] eq 'utf-8') {
-	    &message( "INFO", "$workfilename is encoded in " . $log[0]);
-	    
-	} else {
-	    &message( "ERROR", "$workfilename is encoded in " . $log[0]);
-	    &clean_and_exit( 1 );
-	};
-    } else {
-	&message( "ERROR", "@log" );
-	&message( "ERROR", "Failed running '$cmd'" );
-	&clean_and_exit( 1 );
-    };
+        if ( $log[0] eq 'us-ascii' or $log[0] eq 'utf-8' ) {
+            &message( "INFO", "$workfilename is encoded in " . $log[0] );
+
+        }
+        else {
+            &message( "ERROR", "$workfilename is encoded in " . $log[0] );
+            &clean_and_exit( 1 );
+        }
+    }
+    else {
+        &message( "ERROR", "@log" );
+        &message( "ERROR", "Failed running '$cmd'" );
+        &clean_and_exit( 1 );
+    }
 };
 
 # Create a new list file under a temporary file name
@@ -589,16 +592,16 @@ unless ( print $outf "# This file has been created by user $user using the scrip
 # Read infile and write to outfile
 
 # From infile
-my @records = parse($inf);
+my @records = parse( $inf );
 
 # Print to outfile
-foreach my $rec (@records) {
+foreach my $rec ( @records ) {
 
     unless ( print $outf $rec, "\n" ) {
-	&message( "ERROR", "Cannot write to $new_lf_name: $!" );
-	&clean_and_exit( 1 );
-    };
-};
+        &message( "ERROR", "Cannot write to $new_lf_name: $!" );
+        &clean_and_exit( 1 );
+    }
+}
 
 # Print a human friendly EOF to the new list file
 unless ( print $outf "# END-OF-FILE\n" ) {
@@ -724,9 +727,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 =cut
-
-
-
 
 __DATA__
 # Taken from http://www.w3.org/TR/2000/REC-xml-20001006#CharClasses
