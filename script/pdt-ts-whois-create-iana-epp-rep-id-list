@@ -132,25 +132,6 @@ sub make_file_safe {
     return ( $text );
 }
 
-# Remove temporary files, print/send a message and exit. All exits go
-# through this subroutine.
-sub clean_and_exit {
-
-    # Exit code, null unless set in call
-    my ( $code ) = @_;
-
-    # A message
-    if ( $code ) {
-        &message( "ERROR", "Exiting after previos error. No file saved." );
-    }
-    else {
-        &message( "INFO", "Successfully completed" );
-    }
-
-    # exit
-    exit $code;
-};    # sub clean_and_exit ###########################################
-
 # Trim leading and trailing whitespace (copied from csvimp)
 sub trim_space {
     my ( $string ) = @_;
@@ -174,11 +155,11 @@ sub read_csv {
     if ( my $exception = $@ ) {    # Errors
         if ( $exception =~ m{\Autf8 (.*) does not map to Unicode at }ms ) {
             &message( "ERROR", "Non unicode character found in record " . $csv->record_number . " in fetched file." );
-            &clean_and_exit( 1 );
+            exit 1;
         }
         else {
             &message( "ERROR", $exception );
-            &clean_and_exit( 1 );
+            exit 1;
         }
     }
 
@@ -187,13 +168,13 @@ sub read_csv {
     $line =~ tr/\t/ /;             # Replace TAB with SPACE.
     if ( $line =~ m{[\x00-\x1f]}xms ) {    # Some other control character in ASCII range
         &message( "ERROR", "Control character found in record " . $csv->record_number . " in fetched file." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 
     # Parse CSV
     unless ( $csv->parse( $line ) ) {
         &message( "ERROR", "Invalid csv found in record " . $csv->record_number + 1 . ": " . $csv->error_input || 'error' );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 
     # Trim field whitespace
@@ -331,7 +312,7 @@ sub create_re_for_char_range {
             }
             else {
                 &message( "ERROR", "Illegal character range in __DATA__ section in this script." );
-                &clean_and_exit( 1 );
+                exit 1;
             }
 
         }
@@ -354,7 +335,7 @@ sub parse {
     # CSV header line
     unless ( $fields = &read_csv( $fh, $csv ) ) {
         &message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
     @header = @{$fields};
 
@@ -363,12 +344,12 @@ sub parse {
         my $actual = ( $i < @header ) ? $header[$i] : 'end of line';
         unless ( $CSV_exp_header[$i] eq $header[$i] ) {
             &message( "ERROR", "Column number " . $i + 1 . ": expected header '" . $CSV_exp_header[$i] . "', got '" . $actual . "' in fetched file." );
-            &clean_and_exit( 1 );
+            exit 1;
         }
     }
     if ( @header > @CSV_exp_header ) {
         &message( "ERROR", "Extra header after " . $CSV_exp_header[$#CSV_exp_header] . " in fetched file." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 
     # Data lines
@@ -376,7 +357,7 @@ sub parse {
     # Read first record
     unless ( $fields = read_csv( $fh, $csv ) ) {
         &message( "ERROR", "Unexpected end of file in record " . $csv->record_number . " in fetched file." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 
     #
@@ -389,7 +370,7 @@ sub parse {
         # Empty ID?
         unless ( $fields->[0] ) {
             &message( "ERROR", "Unexpected empty ID in record " . $csv->record_number . " in fetched file." );
-            &clean_and_exit( 1 );
+            exit 1;
         }
 
         # Get the ID extracted from the first field.
@@ -446,11 +427,11 @@ if ( $opt_devel_in ) {
 foreach my $prog ( @ext_progs ) {
     unless ( -e $prog ) {
         &message( "ERROR", "External program $prog is missing." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
     unless ( -x $prog ) {
         &message( "ERROR", "External program $prog is not executable." );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 }
 
@@ -461,7 +442,7 @@ my ( $workfilename ) = $tempdir . '/work';
 if ( $opt_devel_in ) {    # If we do development, not normally
     unless ( &File::Copy::copy( $iana_file, $workfilename ) ) {
         &message( "ERROR", "Could not copy $iana_file to $workfilename: $!" );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 }
 else {
@@ -476,7 +457,7 @@ else {
     else {
         &message( "ERROR", "@log" );
         &message( "ERROR", "Failed running '$cmd'" );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 }
 
@@ -493,13 +474,13 @@ else {
         }
         else {
             &message( "ERROR", "$workfilename is encoded in " . $log[0] );
-            &clean_and_exit( 1 );
+            exit 1;
         }
     }
     else {
         &message( "ERROR", "@log" );
         &message( "ERROR", "Failed running '$cmd'" );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 };
 
@@ -514,7 +495,7 @@ my ( $inf, $outf );
 # Open the tempfile for reading
 unless ( open( $inf, '<', $workfilename ) ) {
     &message( "ERROR", "Cannot open $workfilename for reading: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Open the new list file for writing
@@ -523,7 +504,7 @@ unless ( open( $inf, '<', $workfilename ) ) {
 # open FH, ">:encoding(UTF-8)",     "file";
 unless ( open( $outf, '>:encoding(UTF-8)', $new_lf_name ) ) {
     &message( "ERROR", "Cannot open $new_lf_name for writing: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Print a nice header to the new list file
@@ -531,7 +512,7 @@ my $dt   = DateTime->now;     # To get time and date
 my $user = getpwuid( $< );    # To get user who runs the script
 unless ( print $outf "# This file has been created by user $user using the script $me \n", "# at ", $dt->ymd, " ", $dt->hms, " ", $dt->time_zone_short_name(), ".\n", "#\n", "# Do not edit this file manually. Recreate it with the script.\n#\n" ) {
     &message( "ERROR", "Cannot write to $new_lf_name: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Read infile and write to outfile
@@ -544,39 +525,39 @@ foreach my $rec ( @records ) {
 
     unless ( print $outf $rec, "\n" ) {
         &message( "ERROR", "Cannot write to $new_lf_name: $!" );
-        &clean_and_exit( 1 );
+        exit 1;
     }
 }
 
 # Print a human friendly EOF to the new list file
 unless ( print $outf "# END-OF-FILE\n" ) {
     &message( "ERROR", "Cannot write to $new_lf_name: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Now we close the files
 unless ( close $inf ) {
     &message( "ERROR", "Could not close $workfilename: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 if ( close $outf ) {
     &message( "INFO", "Wrote the new list to temporary file $new_lf_name" );
 }
 else {
     &message( "ERROR", "Could not close $new_lf_name: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Set correct mode of file
 unless ( chmod $filemode, $new_lf_name ) {
     &message( "ERROR", "Could not set correct file mode on $new_lf_name: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Assign file to correct group
 unless ( chown -1, $gid, $new_lf_name ) {
     &message( "ERROR", "Could not assign file $new_lf_name to group pdt: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # Move the new list into the target place
@@ -585,11 +566,11 @@ if ( &File::Copy::move( $new_lf_name, $epp_id_path ) ) {
 }
 else {
     &message( "ERROR", "Could not move $new_lf_name to $epp_id_path: $!" );
-    &clean_and_exit( 1 );
+    exit 1;
 }
 
 # End -- must be the last line of the script
-&clean_and_exit( 0 );
+&message( "INFO", "Successfully completed" );
 
 # Script below, only POD.
 
