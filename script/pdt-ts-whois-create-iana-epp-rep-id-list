@@ -31,19 +31,22 @@
 
 use strict;
 use warnings;
+use 5.014;
+use utf8;
+
+our $VERSION = '1.0';
+
+use DateTime;
+use Encode;
 use File::Basename;
+use File::Copy;
+use File::Temp;
 use Getopt::Long;
 use Pod::Usage;
-use File::Temp;
-use File::Copy;
-use DateTime;
 use Readonly;
-use utf8;
+
 use Text::CSV_XS 0.90;
 use Text::CSV;
-use Encode;
-
-my $VERSION = '1.0';
 
 # General settings that cannot be changed.
 my $confdir     = '/etc/pdt';                                                             # Where PDT conf reside
