@@ -6,8 +6,6 @@
 #
 # Run this script with --help to see all switches.
 #
-# Switches for development and debugging are available.
-#
 # Steps:
 #
 # 1. Create a temporary file under /tmp.
@@ -494,9 +492,7 @@ B<pdt-ts-whois-create-iana-epp-rep-id-list> - Fetch a database of EPP Repository
 
 =head1 USAGE
 
-B<pdt-ts-whois-create-iana-epp-rep-id-list> --help|--version
-
-B<pdt-ts-whois-create-iana-epp-rep-id-list> [--devel-in] [--devel-out]
+B<pdt-ts-whois-create-iana-epp-rep-id-list> [--help|--version]
 
 =head1 DESCRIPTION
 
@@ -512,14 +508,6 @@ the path and name "/etc/pdt/iana-epp-rep-id.txt".
 =item B<--help>
 
 Print this message and exit.
-
-=item B<--devel-out>
-
-For development and debugging only. The output file is saved in current directory.
-
-=item B<--devel-in>
-
-For development and debugging only. The input file is fetched from current directory.
 
 =item B<--version>
 
