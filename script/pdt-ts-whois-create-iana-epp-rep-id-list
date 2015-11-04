@@ -52,24 +52,19 @@ use Text::CSV_XS 0.90;
 use Text::CSV;
 
 # General settings that cannot be changed.
-my $datadir     = $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                                  # Where PDT conf reside
-my $epp_id_file = 'iana-epp-rep-id.txt';                                                             # This must be the same file as pdt-ts-whois expects
-my $iana_url    = 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # This is assumed to be a http(s) URL
-my $wget        = '/usr/bin/wget';                                                                   # wget to fetch file with
-my $timeout     = '/usr/bin/timeout';                                                                # Timeout program to control that wget does not hang too long.
-my $fileprog    = "/usr/bin/file";                                                                   # To test encoding of file before we process it.
-my @ext_progs   = ( $wget, $timeout, $fileprog );                                                    # To be able to test that they are there and executable
-my $tempdir     = tempdir( CLEANUP => 1 );
+Readonly my $iana_url => 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # This is assumed to be a http(s) URL
 
-# Regular expressions
-my $valid_epp_rep_id = my $valid_id_char = &create_re_for_char_range;
+Readonly my $wget      => '/usr/bin/wget';                                                                  # wget to fetch file with
+Readonly my $timeout   => '/usr/bin/timeout';                                                               # Timeout program to control that wget does not hang too long.
+Readonly my $fileprog  => "/usr/bin/file";                                                                  # To test encoding of file before we process it.
+Readonly my @ext_progs => ( $wget, $timeout, $fileprog );                                                   # To be able to test that they are there and executable
 
-# For matching EPP Rep IDs
-$valid_epp_rep_id = '^' . $valid_epp_rep_id . '*$';
-$valid_epp_rep_id = qr/$valid_epp_rep_id/o;
-
-# For check each character in an ID
-$valid_id_char = qr/$valid_id_char/o;
+Readonly my $datadir          => $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                          # Where PDT conf reside
+Readonly my $epp_id_path      => $datadir . '/' . 'iana-epp-rep-id.txt';                                    # This must be the same file as pdt-ts-whois expects
+Readonly my $tempdir          => tempdir( CLEANUP => 1 );
+Readonly my $valid_id_char    => &create_re_for_char_range;                                                 # For check each character in an ID
+Readonly my $valid_epp_rep_id => qr/^$valid_id_char*$/;                                                     # For matching EPP Rep IDs
+Readonly my $me               => basename( $0 );                                                            # Extract the script name
 
 # The expected header structure of the fetched CSV file
 Readonly my $CSV_EPP_Rep_ID  => 'EPP Repository ID';
@@ -82,11 +77,6 @@ Readonly my @CSV_exp_header => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Con
 # CLI arguments - defined early to be usable anywhere
 my $opt_help;         # Ask for help
 my $opt_version;      # Print version
-
-my $epp_id_path = $datadir . '/' . $epp_id_file;    # Normal value should be $datadir/$epp_id_file, where whois script expects.
-
-# Extract the script name
-my $me = basename( $0 );
 
 # Print info message
 sub info {
@@ -107,7 +97,7 @@ sub make_file_safe {
     utf8::decode( $text );                # Treat as UTF-8
     my ( @chars ) = split( //, $text );
     foreach my $c ( @chars ) {
-        $c = '?' unless $c =~ /[\x{0020}-\x{007E}]/ or $c =~ /$valid_id_char/;
+        $c = '?' unless $c =~ /[\x{0020}-\x{007E}]/ or $c =~ $valid_id_char;
     }
     return ( $text );
 }
@@ -256,8 +246,7 @@ sub make_string_from_code_points {
     return $str;
 }
 
-# Read the __DATA__ section with code point ranges and create a string that can be used directly
-# in a regular expression.
+# Read the __DATA__ section with code point ranges and create a regular expression.
 sub create_re_for_char_range {
     my $line;
     my @ranges;
@@ -293,9 +282,9 @@ sub create_re_for_char_range {
         }
     }
 
-    # Return a string for a regular expression.
-    return '[' . join( '', @ranges ) . ']';
-
+    # Return a regular expression.
+    my $chars = '[' . join( '', @ranges ) . ']';
+    return qr/$chars/;
 }
 
 # Parse indata stream (based on code from "csvimp")
