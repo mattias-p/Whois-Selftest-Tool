@@ -4,8 +4,7 @@
 # conversion, saved into /etc/pdt/iana-epp-rep-id.txt, which is used by /usr/bin/pdt-ts-whois. The full name
 # /etc/pdt/iana-epp-rep-id.txt is hardcode in this script and the Whois script.
 #
-# This script is designed to be run from cron, but it could also be run from the command line. When run from cron,
-# the --cron switch should be used so that all messages go to syslog. Run this script with --help to see all switches.
+# Run this script with --help to see all switches.
 #
 # Switches for development and debugging are available.
 #
@@ -497,7 +496,7 @@ B<pdt-ts-whois-create-iana-epp-rep-id-list> - Fetch a database of EPP Repository
 
 B<pdt-ts-whois-create-iana-epp-rep-id-list> --help|--version
 
-B<pdt-ts-whois-create-iana-epp-rep-id-list> [--cron] [--devel-in] [--devel-out]
+B<pdt-ts-whois-create-iana-epp-rep-id-list> [--devel-in] [--devel-out]
 
 =head1 DESCRIPTION
 
@@ -506,10 +505,6 @@ The script fetches a data base with registered EPP Repository Identifiers from I
 data base is, after conversion to a text file, used by the Whois script. The text file is hard coded to 
 the path and name "/etc/pdt/iana-epp-rep-id.txt".
 
-This script is designed to be run from cron, but it could also be run from the 
-command line. When run from cron, the --cron switch should be used so that all 
-messages go to syslog.
-
 =head1 OPTIONS
 
 =over
@@ -517,11 +512,6 @@ messages go to syslog.
 =item B<--help>
 
 Print this message and exit.
-
-=item B<--cron>
-
-With this option, all messages (errors and information) are sent to syslog. This is the recommended mode when run as a cron script.
-Without it, messages are printed to STDOUT and STDERR.
 
 =item B<--devel-out>
 
