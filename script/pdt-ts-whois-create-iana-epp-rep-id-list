@@ -379,6 +379,11 @@ foreach my $prog ( @ext_progs ) {
 # Create a temporary working file to put the file which we are about to fetch from IANA into.
 my ( $workfilename ) = $tempdir . '/work';
 
+# Create data directory
+unless ( -d $datadir ) {
+    make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
+}
+
 # Fetch the file to the temporary work file
 my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
 my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
@@ -464,11 +469,6 @@ if ( close $outf ) {
 }
 else {
     croak( "Could not close $new_lf_name: $!" );
-}
-
-# Create temp directory
-unless ( -d $datadir ) {
-    make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
 }
 
 # Move the new list into the target place
