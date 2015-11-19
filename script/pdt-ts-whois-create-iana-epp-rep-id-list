@@ -59,8 +59,8 @@ Readonly my @ext_progs => ( $wget, $timeout, $fileprog );                       
 Readonly my $datadir          => $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                          # Where PDT conf reside
 Readonly my $epp_id_path      => $datadir . '/' . 'iana-epp-rep-id.txt';                                    # This must be the same file as pdt-ts-whois expects
 Readonly my $tempdir          => tempdir( CLEANUP => 1 );
-Readonly my $valid_id_char    => &create_re_for_char_range;                                                 # For check each character in an ID
-Readonly my $valid_epp_rep_id => qr/^$valid_id_char*$/;                                                     # For matching EPP Rep IDs
+Readonly my @id_char_ranges   => get_id_char_ranges();                                                      # For check each character in an ID
+Readonly my $valid_epp_rep_id => create_re_for_char_range( @id_char_ranges );                               # For matching EPP Rep IDs
 Readonly my $me               => basename( $0 );                                                            # Extract the script name
 
 # The expected header structure of the fetched CSV file
@@ -84,10 +84,7 @@ sub info {
 sub make_file_safe {
     my ( $text ) = @_;                    # Only first record
     utf8::decode( $text );                # Treat as UTF-8
-    my ( @chars ) = split( //, $text );
-    foreach my $c ( @chars ) {
-        $c = '?' unless $c =~ /[\x{0020}-\x{007E}]/ or $c =~ $valid_id_char;
-    }
+    $text =~ s/[^\x{0020}-\x{007E}@id_char_ranges]/?/g;
     return ( $text );
 }
 
@@ -206,7 +203,7 @@ sub extract_and_validate_id {
     }
 
     # Only legal
-    unless ( $id =~ /$valid_epp_rep_id/ ) {
+    unless ( $id =~ $valid_epp_rep_id ) {
         info( "Illegal character in ID in record $no: " . $fi );
         info( "The ID is ignored and not included in the list." );
 
@@ -230,8 +227,8 @@ sub make_string_from_code_points {
     return $str;
 }
 
-# Read the __DATA__ section with code point ranges and create a regular expression.
-sub create_re_for_char_range {
+# Parse the __DATA__ section with code point ranges
+sub get_id_char_ranges {
     my $line;
     my @ranges;
 
@@ -265,10 +262,16 @@ sub create_re_for_char_range {
 
         }
     }
+    return @ranges;
+}
+
+# Create a regular expression from a list of code point ranges
+sub create_re_for_char_range {
+    my @ranges = @_;
 
     # Return a regular expression.
     my $chars = '[' . join( '', @ranges ) . ']';
-    return qr/$chars/;
+    return qr/^$chars*$/;
 }
 
 # Parse indata stream (based on code from "csvimp")
