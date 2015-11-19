@@ -173,7 +173,7 @@ sub extract_and_validate_id {
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
-        return '# ID ignored, no match: "' . &make_file_safe( $fi ) . '" vs. "' . $idchar . '"';
+        return '# ID ignored, no match: "' . $fi . '" vs. "' . $idchar . '"';
     }
 
     # We check the Identifier and replace it with a comment unless valid.
@@ -190,7 +190,7 @@ sub extract_and_validate_id {
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
-        return '# ID ignored, no match: "' . &make_file_safe( $id ) . '" vs. "' . $idchar . '"';
+        return '# ID ignored, no match: "' . $id . '" vs. "' . $idchar . '"';
     }
 
     # Lenght
@@ -199,7 +199,7 @@ sub extract_and_validate_id {
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
-        return '# ID ignored, too long: "' . &make_file_safe( $id ) . '"';
+        return '# ID ignored, too long: "' . $id . '"';
     }
 
     # Only legal
@@ -208,7 +208,7 @@ sub extract_and_validate_id {
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
-        return '# ID ignored, illegal code point in string: "' . &make_file_safe( $id ) . '"';
+        return '# ID ignored, illegal code point in string: "' . $id . '"';
     }
 
     # We only return if OK.
@@ -320,9 +320,8 @@ sub parse {
         }
 
         # Get the ID extracted from the first field.
-        my ( $id );
-        if ( $id = &extract_and_validate_id( $fields->[0], $csv->record_number ) ) {
-            push @records, $id;
+        if ( my $record = &extract_and_validate_id( $fields->[0], $csv->record_number ) ) {
+            push @records, $record;
         }
         else {
 
@@ -440,7 +439,7 @@ my @records = parse( $inf );
 # Print to outfile
 foreach my $rec ( @records ) {
 
-    unless ( print $outf $rec, "\n" ) {
+    unless ( print $outf make_file_safe( $rec ), "\n" ) {
         croak( "Cannot write to $new_lf_name: $!" );
     }
 }
