@@ -328,6 +328,35 @@ sub parse {
     return @records;
 }
 
+# Fetch the url using wget
+sub fetch_url {
+    my $url      = shift;
+    my $filename = shift;
+
+    my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
+    my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
+    my $cmd = "$timeout -k $kto $to $wget -nv -O $filename $url";
+    my @log = qx/$cmd 2>&1/;
+    chomp @log;
+    if ( $? == 0 ) {
+        info( "@log" );
+    }
+    else {
+        croak( "@log\nFailed running '$cmd'" );
+    }
+}
+
+# Detect and return file encoding
+sub detect_file_encoding {
+    my $filename = shift;
+
+    my $cmd = "$fileprog -b --mime-encoding $filename";
+    my @log = qx/$cmd 2>&1/;
+    chomp @log;
+    $? == 0 or croak( "@log\nFailed running '$cmd'" );
+    return $log[0];
+}
+
 # Parse CLI arguments
 GetOptions(
     'help|?'    => \$opt_help,
@@ -364,37 +393,14 @@ unless ( -d $datadir ) {
 }
 
 # Fetch the file from IANA into the temporary work file
-my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
-my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
-my $cmd = "$timeout -k $kto $to $wget -nv -O $workfilename ${iana_url}";
-my @log = qx/$cmd 2>&1/;
-chomp @log;
-if ( $? == 0 ) {
-    info( "@log" );
-}
-else {
-    croak( "@log\nFailed running '$cmd'" );
-}
+fetch_url($iana_url, $workfilename);
 
 # Check the fetched file. It must be an ascii or utf-8 file.
 {
-    my $cmd = "$fileprog -b --mime-encoding $workfilename";
-    my @log = qx/$cmd 2>&1/;
-    chomp @log;
-    if ( $? == 0 ) {
-
-        if ( $log[0] eq 'us-ascii' or $log[0] eq 'utf-8' ) {
-            info( "$workfilename is encoded in " . $log[0] );
-
-        }
-        else {
-            croak( "$workfilename is encoded in " . $log[0] );
-        }
-    }
-    else {
-        croak( "@log\nFailed running '$cmd'" );
-    }
-};
+    my $encoding = detect_file_encoding($workfilename);
+    $encoding eq 'us-ascii' || $encoding eq 'utf-8' or croak( "$workfilename is encoded in " . $encoding );
+    info( "$workfilename is encoded in " . $encoding );
+}
 
 # Now we are about to parse the tempfile and push to the new list file in correct format
 
