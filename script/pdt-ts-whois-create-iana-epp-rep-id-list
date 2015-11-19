@@ -138,8 +138,6 @@ sub read_csv {
 sub extract_and_validate_id {
     my ( $fi, $no ) = @_;    # The field content and record no.
 
-    utf8::decode( $fi );     # Must be UTF-8
-
     # Split into two parts, must not be anything else. The two parts must represent the same thing. Real examples on next
     # two lines after "# ":
     # ENUMAT, #x0045 #x004E #x0055 #x004D #x0041 #x0054
@@ -430,7 +428,6 @@ my @records = parse( $inf );
 
 # Print to outfile
 foreach my $rec ( @records ) {
-    utf8::decode( $rec );    # Treat as UTF-8
     $rec =~ s/[^\x{0020}-\x{007E}@id_char_ranges]/?/g;
     unless ( print $outf $rec, "\n" ) {
         croak( "Cannot write to $new_lf_name: $!" );
