@@ -80,14 +80,6 @@ sub info {
     print STDERR "INFO: ", ( map { $_ =~ tr/\x{0020}-\x{007E}/?/cr } @_ ), "\n";
 }
 
-# Remove any code point outside ASCII or the permitted range to be safe.
-sub make_file_safe {
-    my ( $text ) = @_;                    # Only first record
-    utf8::decode( $text );                # Treat as UTF-8
-    $text =~ s/[^\x{0020}-\x{007E}@id_char_ranges]/?/g;
-    return ( $text );
-}
-
 # Trim leading and trailing whitespace (copied from csvimp)
 sub trim_space {
     my ( $string ) = @_;
@@ -438,8 +430,9 @@ my @records = parse( $inf );
 
 # Print to outfile
 foreach my $rec ( @records ) {
-
-    unless ( print $outf make_file_safe( $rec ), "\n" ) {
+    utf8::decode( $rec );    # Treat as UTF-8
+    $rec =~ s/[^\x{0020}-\x{007E}@id_char_ranges]/?/g;
+    unless ( print $outf $rec, "\n" ) {
         croak( "Cannot write to $new_lf_name: $!" );
     }
 }
