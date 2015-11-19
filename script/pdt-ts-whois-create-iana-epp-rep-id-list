@@ -56,9 +56,13 @@ Readonly my $timeout   => '/usr/bin/timeout';                                   
 Readonly my $fileprog  => "/usr/bin/file";                                                                  # To test encoding of file before we process it.
 Readonly my @ext_progs => ( $wget, $timeout, $fileprog );                                                   # To be able to test that they are there and executable
 
-Readonly my $datadir          => $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                          # Where PDT conf reside
-Readonly my $epp_id_path      => $datadir . '/' . 'iana-epp-rep-id.txt';                                    # This must be the same file as pdt-ts-whois expects
-Readonly my $tempdir          => tempdir( CLEANUP => 1 );
+Readonly my $datadir     => $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                               # Where PDT conf reside
+Readonly my $epp_id_path => $datadir . '/' . 'iana-epp-rep-id.txt';                                         # This must be the same file as pdt-ts-whois expects
+
+Readonly my $tempdir => tempdir( CLEANUP => 1 );
+Readonly my $new_lf_name  => $tempdir . '/list';                                                            # Filename for new list temporary file
+Readonly my $workfilename => $tempdir . '/work';                                                            # Temporary working file to put the file which we are about to fetch from IANA into.
+
 Readonly my @id_char_ranges   => get_id_char_ranges();                                                      # For check each character in an ID
 Readonly my $valid_epp_rep_id => create_re_for_char_range( @id_char_ranges );                               # For matching EPP Rep IDs
 Readonly my $me               => basename( $0 );                                                            # Extract the script name
@@ -68,8 +72,7 @@ Readonly my $CSV_EPP_Rep_ID  => 'EPP Repository ID';
 Readonly my $CSV_Change_Ctrl => 'Change Controller';
 Readonly my $CSV_Ref_Cont    => 'Reference/Contact';
 Readonly my $CSV_Reg_Date    => 'Registration Date';
-
-Readonly my @CSV_exp_header => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Cont, $CSV_Reg_Date, );
+Readonly my @CSV_exp_header  => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Cont, $CSV_Reg_Date, );
 
 # CLI arguments - defined early to be usable anywhere
 my $opt_help;         # Ask for help
@@ -355,15 +358,12 @@ foreach my $prog ( @ext_progs ) {
     }
 }
 
-# Create a temporary working file to put the file which we are about to fetch from IANA into.
-my ( $workfilename ) = $tempdir . '/work';
-
 # Create data directory
 unless ( -d $datadir ) {
     make_path($datadir) or croak "Can't create path '$datadir': $OS_ERROR";
 }
 
-# Fetch the file to the temporary work file
+# Fetch the file from IANA into the temporary work file
 my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
 my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
 my $cmd = "$timeout -k $kto $to $wget -nv -O $workfilename ${iana_url}";
@@ -396,72 +396,28 @@ else {
     }
 };
 
-# Create a new list file under a temporary file name
-my ( $new_lf_name ) = $tempdir . '/list';
-
 # Now we are about to parse the tempfile and push to the new list file in correct format
 
-# Define file handles -- infile (reading) and outfile (writing)
-my ( $inf, $outf );
-
-# Open the tempfile for reading
-unless ( open( $inf, '<', $workfilename ) ) {
-    croak( "Cannot open $workfilename for reading: $!" );
-}
-
-# Open the new list file for writing
-#
-# open FH, ">:utf8", "file";
-# open FH, ">:encoding(UTF-8)",     "file";
-unless ( open( $outf, '>:encoding(UTF-8)', $new_lf_name ) ) {
-    croak( "Cannot open $new_lf_name for writing: $!" );
-}
-
-# Print a nice header to the new list file
-my $dt = DateTime->now;    # To get time and date
-print $outf "# This file was automatically generated at ", $dt->ymd, " ", $dt->hms, " ", $dt->time_zone_short_name(), ".\n", "#\n", "# Do not edit manually. Regenerate it using $me.\n#\n" or croak "Cannot write to $new_lf_name: $!";
-
-# Read infile and write to outfile
-
-# From infile
+# Read the tempfile
+open( my $inf, '<', $workfilename ) or croak( "Cannot open $workfilename for reading: $!" );
 my @records = parse( $inf );
+close $inf or croak( "Could not close $workfilename: $!" );
 
-# Print to outfile
+# Create a new list file under a temporary file name with records between human friendly header and footer
+my $dt = DateTime->now;    # To get time and date
+open( my $outf, '>:encoding(UTF-8)', $new_lf_name ) or croak( "Cannot open $new_lf_name for writing: $!" );
+print $outf "# This file was automatically generated at ", $dt->ymd, " ", $dt->hms, " ", $dt->time_zone_short_name(), ".\n", "#\n", "# Do not edit manually. Regenerate it using $me.\n#\n" or croak "Cannot write to $new_lf_name: $!";
 foreach my $rec ( @records ) {
     $rec =~ s/[^\x{0020}-\x{007E}@id_char_ranges]/?/g;
-    unless ( print $outf $rec, "\n" ) {
-        croak( "Cannot write to $new_lf_name: $!" );
-    }
+    say $outf $rec or croak( "Cannot write to $new_lf_name: $!" );
 }
-
-# Print a human friendly EOF to the new list file
-unless ( print $outf "# END-OF-FILE\n" ) {
-    croak( "Cannot write to $new_lf_name: $!" );
-}
-
-# Now we close the files
-unless ( close $inf ) {
-    croak( "Could not close $workfilename: $!" );
-}
-if ( close $outf ) {
-    info( "Wrote the new list to temporary file $new_lf_name" );
-}
-else {
-    croak( "Could not close $new_lf_name: $!" );
-}
+print $outf "# END-OF-FILE\n" or croak( "Cannot write to $new_lf_name: $!" );
+close $outf or croak( "Could not close $new_lf_name: $!" );
+info( "Wrote the new list to temporary file $new_lf_name" );
 
 # Move the new list into the target place
-if ( &File::Copy::move( $new_lf_name, $epp_id_path ) ) {
-    info( "The EPP Repository Identifier list $epp_id_path has been updated." );
-}
-else {
-    croak( "Could not move $new_lf_name to $epp_id_path: $!" );
-}
-
-# End -- must be the last line of the script
-info( "Successfully completed" );
-
-# Script below, only POD.
+File::Copy::move( $new_lf_name, $epp_id_path ) or croak( "Could not move $new_lf_name to $epp_id_path: $!" );
+info( "The EPP Repository Identifier list $epp_id_path has been updated." );
 
 =encoding utf8
 
