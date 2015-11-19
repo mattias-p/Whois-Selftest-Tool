@@ -77,15 +77,7 @@ my $opt_version;      # Print version
 
 # Print info message
 sub info {
-    print STDERR "INFO: @_\n";
-}
-
-# Remove non-ascii from string to make it safe for syslog
-sub make_syslog_safe {
-    my ( $text ) = @_;        # Only first record
-    utf8::decode( $text );    # Treat as UTF-8
-    $text =~ tr/\x{0020}-\x{007E}/?/c;    # Clean from non-ascii or non-printable.
-    return ( $text );
+    print STDERR "INFO: ", ( map { $_ =~ tr/\x{0020}-\x{007E}/?/cr } @_ ), "\n";
 }
 
 # Remove any code point outside ASCII or the permitted range to be safe.
@@ -167,13 +159,11 @@ sub extract_and_validate_id {
 
         # Be liberal on space before comma.
 
-        my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe( $fi ) . '<<';
-
-        info( $syslog_msg );
+        info( "ID expression in record $no could not be parsed: >>$fi<<" );
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
-        return 'ID expression in record $no could not be parsed: "' . &make_syslog_safe( $fi ) . '"';
+        return 'ID expression in record $no could not be parsed: "' . $fi . '"';
     }
 
     my $id     = $1;    # This should be equal to the EPP Rep ID
@@ -182,9 +172,7 @@ sub extract_and_validate_id {
     # Is the code point representation valid?
     unless ( $idchar =~ /^( *#x[0-9a-fA-F]{4,6})+ *$/ ) {
 
-        my $syslog_msg = "ID expression in record $no could not be parsed: >>" . &make_syslog_safe( $fi ) . '<<';
-
-        info( $syslog_msg );
+        info( "ID expression in record $no could not be parsed: >>$fi<<" );
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
@@ -200,9 +188,8 @@ sub extract_and_validate_id {
     # The same string?
     my $id2 = &make_string_from_code_points( $idchar );
     unless ( $id eq $id2 ) {
-        my $syslog_msg = "Second representation of ID in record $no does not match first: >>" . &make_syslog_safe( $id ) . "<< vs. >>$idchar<<";
 
-        info( $syslog_msg );
+        info( "Second representation of ID in record $no does not match first: >>$id<< vs. >>$idchar<<" );
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
@@ -211,7 +198,7 @@ sub extract_and_validate_id {
 
     # Lenght
     if ( length $id > 8 ) {
-        info( "ID in record $no is too long (more than 8 characters): " . &make_syslog_safe( $fi ) );
+        info( "ID in record $no is too long (more than 8 characters): " . $fi );
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
@@ -220,7 +207,7 @@ sub extract_and_validate_id {
 
     # Only legal
     unless ( $id =~ /$valid_epp_rep_id/ ) {
-        info( "Illegal character in ID in record $no: " . &make_syslog_safe( $fi ) );
+        info( "Illegal character in ID in record $no: " . $fi );
         info( "The ID is ignored and not included in the list." );
 
         # We set the string to a comment
