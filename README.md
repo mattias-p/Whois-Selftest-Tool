@@ -72,7 +72,8 @@ rest of this document.
 
 Usage
 =====
-The `whois`, `file` and `iconv` are general tools available on all Mac, Unix or Linux computers.
+The `whois`, `file` and `iconv` are general tools available on all Mac, Unix or
+Linux computers.
 
 1. Select a whois server to query and an existing object to query for.
   * Domain name, Registrar or Nameserver objects are supported
@@ -81,7 +82,11 @@ The `whois`, `file` and `iconv` are general tools available on all Mac, Unix or 
   * E.g. `whois -h 1.2.3.4 domain.example > queryoutput.txt`
 3. Ensure that the character encoding is UTF-8 or ASCII
   * E.g. `file queryoutput.txt`
-  * Convert the response with `iconv` if the encoding is neither UTF-8 nor ASCII
+  * Convert the response with `iconv` if the encoding is neither UTF-8 nor
+    ASCII
 4. Validate the fetched Whois response.
-  * E.g. `whois-self-test-tool --domain=domain.example --epp-repo-id=example queryoutput.txt`
-5. Inspect any error messages.
+  * E.g. `whois-test --domain=domain.example --epp-repo-id=example
+    queryoutput.txt`
+5. Resolve any errors indicated in the output and rerun the validation command
+   in step 4.  Note that one detected error may block the validator from
+   detecting additional (possibly more serious) errors.
