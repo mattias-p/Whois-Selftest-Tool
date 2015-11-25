@@ -75,18 +75,21 @@ Usage
 The `whois`, `file` and `iconv` are general tools available on all Mac, Unix or
 Linux computers.
 
-1. Select a whois server to query and an existing object to query for.
+1. Fetch the IANA EPP repo id database.
+  * E.g. `whois-fetch-epp-repo-ids`
+2. Select a whois server to query and an existing object to query for.
   * Domain name, Registrar or Nameserver objects are supported
   * E.g. the domain name *domain.example* on the server *1.2.3.4*
-2. Send the query and save the result into a file.
-  * E.g. `whois -h 1.2.3.4 domain.example > queryoutput.txt`
-3. Ensure that the character encoding is UTF-8 or ASCII
+3. Send the query and save the result into a file.
+  * E.g. `whois -h 1.2.3.4 domain.example > queryoutput.txt` (note that this
+    command might transform newline formats)
+4. Ensure that the character encoding is UTF-8 or ASCII
   * E.g. `file queryoutput.txt`
   * Convert the response with `iconv` if the encoding is neither UTF-8 nor
     ASCII
-4. Validate the fetched Whois response.
+5. Validate the fetched Whois response.
   * E.g. `whois-test --domain=domain.example --epp-repo-id=example
     queryoutput.txt`
-5. Resolve any errors indicated in the output and rerun the validation command
-   in step 4.  Note that one detected error may block the validator from
+6. Resolve any errors indicated in the output and rerun the validation command
+   in step 5.  Note that one detected error may block the validator from
    detecting additional (possibly more serious) errors.
