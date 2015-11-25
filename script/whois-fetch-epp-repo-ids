@@ -49,15 +49,16 @@ use Text::CSV_XS 0.90;
 use Text::CSV;
 
 # General settings that cannot be changed.
-Readonly my $iana_url => 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # This is assumed to be a http(s) URL
+Readonly my $iana_url => 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # IANA URL for EPP Repository Identifiers
 
 Readonly my $wget      => '/usr/bin/wget';                                                                  # wget to fetch file with
 Readonly my $timeout   => '/usr/bin/timeout';                                                               # Timeout program to control that wget does not hang too long.
 Readonly my $fileprog  => "/usr/bin/file";                                                                  # To test encoding of file before we process it.
 Readonly my @ext_progs => ( $wget, $timeout, $fileprog );                                                   # To be able to test that they are there and executable
 
-Readonly my $datadir     => $ENV{HOME} . '/.local/share/Whois-Selftest-Tool';                               # Where PDT conf reside
-Readonly my $epp_id_path => $datadir . '/' . 'iana-epp-rep-id.txt';                                         # This must be the same file as pdt-ts-whois expects
+Readonly my $datahome => $ENV{XDG_DATA_HOME} || $ENV{HOME} . '/.local/share';                               # Base directory relative to which user specific data files should be stored
+Readonly my $datadir     => $datahome . '/Whois-Selftest-Tool';                                             # User specific data directory for Whois-Selftest-Tool
+Readonly my $epp_id_path => $datadir . '/epp-repo-ids.txt';                                                 # EPP Repository Identifiers database
 
 Readonly my $tempdir => tempdir( CLEANUP => 1 );
 Readonly my $new_lf_name  => $tempdir . '/list';                                                            # Filename for new list temporary file

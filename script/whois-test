@@ -207,6 +207,7 @@ use Carp;
 use English;
 use Getopt::Long qw( :config );
 use Pod::Usage;
+use Readonly;
 
 use File::Slurp;
 use Net::IDN::Encode qw( domain_to_ascii );
@@ -296,7 +297,7 @@ sub scrub_roid {
 
 sub scrub_roid_suffix {
     my $value = shift;
-    $glob_types->validate_type( 'roid', 'prefix-' . $value ) and return ();
+    $glob_types->validate_type( 'roid suffix', $value ) and return ();
     return $value;
 }
 
@@ -308,7 +309,7 @@ sub main {
     # This section assigns $glob_types.
     #
     $glob_types = PDT::TS::Whois::Types->new;
-    $glob_types->load_roid_suffix( '../t/iana-epp-rep-id.txt' );
+    $glob_types->load_roid_suffix( $epp_id_path );
 
     ##################################################################
     # Parse command line arguments
