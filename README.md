@@ -52,6 +52,7 @@ Dependencies
 ============
  * Ubuntu 12.04
  * Perl 5.14
+   * Readonly
    * Regexp::IPv6
    * Test::Differences
    * Test::MockObject
