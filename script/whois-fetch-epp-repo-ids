@@ -1,8 +1,7 @@
 #! /usr/bin/perl
 
 # Fetches a data base with registered EPP Repository Identifiers from IANA for the Whois script. The datebase is, after
-# conversion, saved into /etc/pdt/iana-epp-rep-id.txt, which is used by /usr/bin/pdt-ts-whois. The full name
-# /etc/pdt/iana-epp-rep-id.txt is hardcode in this script and the Whois script.
+# conversion, saved into $XDG_DATA_HOME/Whois-Selftest-Tool/epp-repo-ids.txt, which is used by whois-test.
 #
 # Run this script with --help to see all switches.
 #
@@ -25,13 +24,14 @@
 # Revision history:
 #
 # Version 1.0: 2015-10-06: Mats Dufberg: First release version
+# Version 1.1: 2015-12-03: Mattias Päivärinta: Adaptions for public use
 
 use strict;
 use warnings;
 use 5.014;
 use utf8;
 
-our $VERSION = '1.0';
+our $VERSION = '1.1';
 
 use Carp;
 use DateTime;
@@ -430,18 +430,17 @@ info( "The EPP Repository Identifier list $epp_id_path has been updated." );
 
 =head1 NAME
 
-B<pdt-ts-whois-create-iana-epp-rep-id-list> - Fetch a database of EPP Repository Identifiers and save it as a text file in the /etc/pdt directory. 
+B<whois-fetch-epp-repo-ids> - Fetch a database of EPP Repository Identifiers
 
 =head1 USAGE
 
-B<pdt-ts-whois-create-iana-epp-rep-id-list> [--help|--version]
+B<whois-fetch-epp-repo-ids> [--help|--version]
 
 =head1 DESCRIPTION
 
 The script fetches a data base with registered EPP Repository Identifiers from IANA,
-<https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv>. The 
-data base is, after conversion to a text file, used by the Whois script. The text file is hard coded to 
-the path and name "/etc/pdt/iana-epp-rep-id.txt".
+<https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv>. The
+database is, after conversion to a text file, used by B<whois-test>.
 
 =head1 OPTIONS
 
@@ -454,6 +453,30 @@ Print this message and exit.
 =item B<--version>
 
 Print version and exit.
+
+=back
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item B<XDG_DATA_HOME>
+
+The data home directory. (default: B<$HOME/.local/share>)
+
+=back
+
+=head1 FILES
+
+Data files are stored inside the B<Whois-Selftest-Tool> directory under data
+home directory. See XDG_DATA_HOME in the ENVIRONMENT section for details on the
+data home directory.
+
+=over 4
+
+=item B<epp-repo-ids.txt>
+
+The fetched database stored in a text format.
 
 =back
 
