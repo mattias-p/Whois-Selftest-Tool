@@ -76,24 +76,30 @@ Usage
 The `echo`, `nc`, `file` and `iconv` are general tools available on all Unix,
 Linux or Mac computers.
 
-1. Fetch the IANA EPP repo id database.
-  * E.g. `whois-fetch-epp-repo-ids`
-2. Select a whois server to query and an existing object to query for.
-  * Domain name, Registrar or Nameserver objects are supported
-  * E.g. the domain name *domain.example* on the server *1.2.3.4*
-3. Send the query and save the result into a file.
-  * E.g. `echo -n "domain.example\r\n" | nc -q10 1.2.3.4 > queryoutput.txt`
-    (note: the -q option attempts to work around netcat's inclination to
-    half-close its connection)
-4. Ensure that the character encoding is UTF-8 or ASCII
-  * E.g. `file queryoutput.txt`
-  * Convert the response with `iconv` if the encoding is neither UTF-8 nor
-    ASCII
-5. Validate the fetched Whois response.
-  * E.g. `whois-test --domain=domain.example --epp-repo-id=example
-    queryoutput.txt`
-6. Resolve any errors indicated in the output and rerun the validation command
-   in step 5.  Note that one detected error may block the validator from
-   detecting additional (possibly more serious) errors.
-7. If the response was a 'Multiple name servers response', `whois-test` will
-   prompt you to make a follow-up test.  Resume from step 3.
+ 1. Fetch the IANA EPP repo id database.
+   * E.g. `whois-fetch-epp-repo-ids`
+ 2. Select a whois server to query and an existing object to query for.
+   * Domain name, Registrar or Nameserver objects are supported
+   * E.g. the domain name *domain.example* on the server *1.2.3.4*
+ 3. Send the query and save the result into a file.
+   * E.g. `echo -n "domain.example\r\n" | nc -q10 1.2.3.4 > queryoutput.txt`
+     (note: the -q option attempts to work around netcat's inclination to
+     half-close its connection)
+ 4. Ensure that the character encoding is UTF-8 or ASCII
+   * E.g. `file queryoutput.txt`
+   * Convert the response with `iconv` if the encoding is neither UTF-8 nor
+     ASCII
+ 5. Validate the fetched Whois response.
+   * E.g. `whois-test --domain=domain.example --epp-repo-id=example
+     queryoutput.txt`
+ 6. Resolve any errors indicated in the output and rerun the validation command
+    in step 5.  Note that one detected error may block the validator from
+    detecting additional (possibly more serious) errors.
+ 7. If the response was a 'Multiple name servers response', `whois-test` will
+    prompt you to make a follow-up test.  Resume from step 3.
+
+Troubleshooting
+===============
+ * Netcat doesn't support -q on OS X.
+
+   Try using the -w option instead.
