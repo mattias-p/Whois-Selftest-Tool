@@ -5,21 +5,21 @@
 
 =head1 NAME
 
-whois-self-test-tool - Validates Whois output
+whois-test - Validates Whois output
 
 =head1 SYNOPSIS
 
 =over 4
 
-=item whois-self-test-tool [ --help | --man ]
+=item whois-test [ --help | --man ]
 
-=item whois-self-test-tool --domain=HOST FILE --epp-repo-id=SUFFIX
+=item whois-test --domain=HOST FILE --epp-repo-id=SUFFIX
 
-=item whois-self-test-tool --registrar=SUBSTRING FILE
+=item whois-test --registrar=SUBSTRING FILE
 
-=item whois-self-test-tool --nameserver=HOST FILE
+=item whois-test --nameserver=HOST FILE
 
-=item whois-self-test-tool --nameserver-ip=IP FILE
+=item whois-test --nameserver-ip=IP FILE
 
 =back
 
@@ -108,7 +108,7 @@ Convert the response with C<iconv> if the encoding is neither UTF-8 nor ASCII.
 
 =item 4. Validate the fetched Whois response
 
-E.g. C<whois-self-test-tool --domain=domain.example --epp-repo-id=example
+E.g. C<whois-test --domain=domain.example --epp-repo-id=example
 queryoutput.txt>
 
 =item 5. Inspect any error messages
@@ -126,7 +126,27 @@ Unix or Linux computers.
 
 =head1 ENVIRONMENT
 
+=over 4
+
+=item B<XDG_DATA_HOME>
+
+The data home directory. (default: B<$HOME/.local/share>)
+
+=back
+
 =head1 FILES
+
+Data files are stored inside the B<Whois-Selftest-Tool> directory under data
+home directory. See XDG_DATA_HOME in the ENVIRONMENT section for details on the
+data home directory.
+
+=over 4
+
+=item B<epp-repo-ids.txt>
+
+The fetched database stored in a text format.
+
+=back
 
 =head1 CAVEATS
 
@@ -218,6 +238,7 @@ use PDT::TS::Whois::Lexer;
 use PDT::TS::Whois::Validator qw( validate );
 use PDT::TS::Whois::Grammar qw( $grammar );
 use PDT::TS::Whois::Types;
+use PDT::TS::Whois::Util qw( extract_roid );
 
 binmode STDIN, ':utf8';
 
@@ -301,54 +322,6 @@ sub scrub_roid_suffix {
     my $value = shift;
     $glob_types->validate_type( 'roid suffix', $value ) and return ();
     return $value;
-}
-
-=head2 extract_roid( text )
-
-Extract the ROID of the first C<roid line> in the string B<text>.
-
-    my $roid = extract_roid( read_file( 'WhoisWeb05.txt' ) );
-
-Possible return values:
-
-=over 4
-
-=item A ROID
-
-A C<roid line> was found, and its ROID was returned.
-
-=item An empty list
-
-No C<roid line> was found.
-
-=back
-
-=cut
-
-sub extract_roid {
-    my $text = shift or croak 'Missing argument: $text';
-
-    my $lexer = PDT::TS::Whois::Lexer->new( $text );
-    my $types = PDT::TS::Whois::Types->new();
-    while ( 1 ) {
-        my ( $token, $value, $errors ) = $lexer->peek_line();
-        if ( $token eq 'EOF' ) {
-            return ();
-        }
-        elsif ( $token eq 'roid line' ) {
-            ref $value eq 'ARRAY' or croak "'roid line' value expected to be arrayref";
-            defined $value->[0] or croak "'roid line' value expected to have roid at position 0";
-            defined $value->[1] or croak "'hostname' value expected to have roid at position 1";
-            my ( $roid, $hostname ) = @{$value};
-            my @errors;
-            push @errors, $types->validate_type( 'roid', $roid );
-            push @errors, $types->validate_type( 'hostname', $hostname );
-            if ( !@errors ) {
-                return $roid;
-            }
-        }
-        $lexer->next_line();
-    }
 }
 
 sub main {
