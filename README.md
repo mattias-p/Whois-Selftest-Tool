@@ -73,8 +73,8 @@ rest of this document.
 
 Usage
 =====
-The `whois`, `file` and `iconv` are general tools available on all Mac, Unix or
-Linux computers.
+The `echo`, `nc`, `file` and `iconv` are general tools available on all Unix,
+Linux or Mac computers.
 
 1. Fetch the IANA EPP repo id database.
   * E.g. `whois-fetch-epp-repo-ids`
@@ -82,8 +82,9 @@ Linux computers.
   * Domain name, Registrar or Nameserver objects are supported
   * E.g. the domain name *domain.example* on the server *1.2.3.4*
 3. Send the query and save the result into a file.
-  * E.g. `whois -h 1.2.3.4 domain.example > queryoutput.txt` (note that this
-    command might transform newline formats)
+  * E.g. `echo -n "domain.example\r\n" | nc -q10 1.2.3.4 > queryoutput.txt`
+    (note: the -q option attempts to work around netcat's inclination to
+    half-close its connection)
 4. Ensure that the character encoding is UTF-8 or ASCII
   * E.g. `file queryoutput.txt`
   * Convert the response with `iconv` if the encoding is neither UTF-8 nor
