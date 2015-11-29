@@ -94,3 +94,5 @@ Linux computers.
 6. Resolve any errors indicated in the output and rerun the validation command
    in step 5.  Note that one detected error may block the validator from
    detecting additional (possibly more serious) errors.
+7. If the response was a 'Multiple name servers response', `whois-test` will
+   prompt you to make a follow-up test.  Resume from step 3.
