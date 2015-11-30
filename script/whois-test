@@ -35,26 +35,26 @@ Display usage and options, and exit.
 
 Display full man page.
 
-=item B<-e=SUFFIX>, B<--epp-repo-id=SUFFIX>
+=item B<-e> I<SUFFIX>, B<--epp-repo-id>=I<SUFFIX>
 
 Specify the EPP repo id to use in validation.
 
-=item B<-d=HOST>, B<--domain=HOST>
+=item B<-d> I<HOST>, B<--domain>=I<HOST>
 
-Validate B<Domain Name Object reply> for the B<HOST> domain name object.
+Validate B<Domain Name Object reply> for the I<HOST> domain name object.
 
-=item B<-r=SUBSTRING>, B<--registrar=SUBSTRING>
+=item B<-r>=I<SUBSTRING>, B<--registrar>=I<SUBSTRING>
 
 Validate B<Registrar Object reply> for a registrar object whose name contains
-the specified B<SUBSTRING>.
+the specified I<SUBSTRING>.
 
-=item B<-n=HOST>, B<--nameserver=HOST>
+=item B<-n>=I<HOST>, B<--nameserver>=I<HOST>
 
-Validate B<Name Server Object reply> for the B<HOST> name server object.
+Validate B<Name Server Object reply> for the I<HOST> name server object.
 
-=item B<-i=IP>, B<--nameserver-ip=IP>
+=item B<-i>=I<IP>, B<--nameserver-ip>=I<IP>
 
-Validate B<Name Server Object reply> for the name server objects with the B<IP>
+Validate B<Name Server Object reply> for the name server objects with the I<IP>
 IPv4 or IPv6 address.
 
 =item B<FILE>
@@ -66,93 +66,130 @@ standard input.
 
 =head1 DESCRIPTION
 
-=head2 Purpose
+B<whois-test> reads Whois output from a file or C<STDIN>, validates it according
+to the B<PDT_Whois_TP.pdf> document and reports errors and feedback on
+additional tasks that need to be performed.
 
-The purpose of the Whois Selftest Tool is to help gTLD applicants prepare for
-Pre-Delegation Testing by providing pre-PDT Whois output validation.
+Some validation errors prevents the detection of further (possibly more serious)
+validation errors.
 
-=head2 Scope
+For context regarding purspose, scope and disclaimer, see F<README.md>.
 
-While Whois Selftest Tool B<does> validate Whois output and it B<does> strive to
-reflect the state of PDT Whois output validation, it B<is not> authoritative on
-the outcome of PDT and it B<is> subject to change.
-
-=head3 Disclaimer
-
-The Whois Selftest Tool and the actual Whois testing under PDT are not equal.
-There is no guarantee that successfully running the Whois Selftest Tool means
-that the same Whois system will pass the Whois testing under PDT. For example,
-the parts of Whois tests under Whois that include DNS lookups and TCP
-connections are not included in the Whois Selftest Tool. For a complete
-reference of the Whois tests under PDT see the PDT Whois documents.
+=head1 EXAMPLES
 
 =head2 Workflow
 
 =over 4
 
-=item 1. Select a whois server to query and an existing object to query for
+=item 1. Select a Whois server to query and an existing object to query for.
 
-Domain name, Registrar or Nameserver objects are supported.
+B<Domain name>, B<Registrar> or B<Nameserver> objects are supported.
 
-E.g. the domain name I<domain.example> on the server I<1.2.3.4>
+=item 2. Send the query and save the result into a file.
 
-=item 2. Send the query and save the result into a file
+Examples:
 
-E.g. C<whois -h 1.2.3.4 domain.example E<gt> queryoutput.txt>
+=over 4
 
-=item 3. Ensure that the character encoding is UTF-8 or ASCII
+=item C<echo -n "domain.example\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
 
-E.g. C<file queryoutput.txt>
+Make a request for domain name objects matching C<domain.example> to the Whois
+server at IP address C<128.66.0.1>.
 
-Convert the response with C<iconv> if the encoding is neither UTF-8 nor ASCII.
+=item C<echo -n "roid\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
 
-=item 4. Validate the fetched Whois response
+Make a request for the object with id C<roid> to the Whois server at IP address
+C<128.66.0.1>.
 
-E.g. C<whois-test --domain=domain.example --epp-repo-id=example
-queryoutput.txt>
+=item C<echo -n "registrar Partial Registrar Name\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
 
-=item 5. Inspect any error messages
+Make a request for registrar objects matching C<Partial Registrar Name> to the
+Whois server at IP address C<128.66.0.1>.
+
+=item C<echo -n "nameserver ns1.domain.example\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
+
+Make a request for registrar objects matching C<ns1.domain.example> to the Whois
+server at IP address C<128.66.0.1>.
+
+=item C<echo -n "nameserver 128.66.99.234\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
+
+Make a request for registrar objects matching C<128.66.99.234> to the Whois
+server at IP address C<128.66.0.1>.
 
 =back
 
-Note: The C<whois>, C<file> and C<iconv> are general tools available on all Mac,
-Unix or Linux computers.
+Note: The C<echo>, C<nc>, C<file> and C<iconv> commands are general tools
+available on all Unix, Linux or Mac computers.
 
-=head1 RETURN VALUE
+Note: The C<whois> command is not recommended for this task since it does not
+respect the newline format of the responses.
 
-=head1 ERRORS
+Note: Netcat doesn't support -q on OS X.  Try using the -w option instead.
 
-=head1 EXAMPLES
+=item 3. Ensure that the character encoding is UTF-8 or ASCII
+
+=over 4
+
+=item C<file queryoutput.txt>
+
+Convert the response with C<iconv> if the encoding is neither UTF-8 nor ASCII.
+
+=back
+
+=item 4. Validate the fetched Whois response.
+
+=over 4
+
+=item C<whois-test --domain=domain.example --epp-repo-id=example queryoutput.txt>
+
+Validate the response of a B<Domain Name> object query.
+
+=item C<whois-test --registrar='Partial Registrar Name' queryoutput.txt>
+
+Validate the response of a B<Registrar> object query.
+
+=item C<whois-test --nameserver=ns1.domain.example queryoutput.txt>
+
+Validate the response of a B<Name Server> object query for a domain name.
+
+=item C<whois-test --nameserver-ip=128.66.99.234 queryoutput.txt>
+
+Validate the response of a B<Name Server> object query for an IP address.
+
+=back
+
+=item 5. Resolve any errors indicated in the output and rerun the validation
+command in step 5.
+
+If the response was a B<Multiple name servers response>, C<whois-test> will
+prompt you to make a follow-up test.  In that case, resume from step 2.
+
+=back
 
 =head1 ENVIRONMENT
 
 =over 4
 
-=item B<XDG_DATA_HOME>
+=item HOME
 
-The data home directory. (default: B<$HOME/.local/share>)
+Used to determine the default value of $XDG_DATA_HOME if it's needed.
+
+=item XDG_DATA_HOME
+
+The data home directory. (default: $HOME/.local/share)
 
 =back
 
 =head1 FILES
 
-Data files are stored inside the B<Whois-Selftest-Tool> directory under data
-home directory. See XDG_DATA_HOME in the ENVIRONMENT section for details on the
-data home directory.
-
 =over 4
 
-=item B<epp-repo-ids.txt>
+=item F<epp-repo-ids.txt>
 
-The fetched database stored in a text format.
+The database of EPP repository IDs stored in a text format.  Located in the
+F<$XDG_DATA_HOME/Whois-Selftest-Tool> directory.
 
 =back
-
-=head1 CAVEATS
-
-=head1 BUGS
-
-=head1 NOTES
 
 =head1 AUTHOR
 
@@ -163,10 +200,8 @@ Mattias Päivärinta <mattias.paivarinta@doxwork.com>
 Copyright (c) 2015 IIS (The Internet Foundation In Sweden)
 All rights reserved.
 
-The Whois Selftest Tool include components subject to licensing conditions
-specified in relation to the relevant component. The collection of components
-constitute the Whois Selftest Tool and the use hereof is subject to the
-following licensing conditions.
+The Whois Selftest Tool and the use hereof is subject to the following licensing
+conditions.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

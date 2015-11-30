@@ -1,30 +1,134 @@
 #! /usr/bin/perl
+=pod
 
-# Fetches a data base with registered EPP Repository Identifiers from IANA for the Whois script. The datebase is, after
-# conversion, saved into $XDG_DATA_HOME/Whois-Selftest-Tool/epp-repo-ids.txt, which is used by whois-test.
-#
-# Run this script with --help to see all switches.
-#
-# Steps:
-#
-# 1. Create a temporary file under /tmp.
-# 2. Fetch the file from IANA with wget() to the temporary file.
-# 3. Validate the file format.
-# 4. Create a temporay file under the target directory.
-# 5. Open the first file for reading and the other for writing.
-# 6. Create a header (comment lines starting with '#') in the target file.
-# 7. Read all EPP Repository Identifiers from the first file, validating the format of those.
-# 8. Write all Identifiers to the target file, one per line. Ignoring incorrect Identifiers.
-# 7. The new list file gets correct permissions.
-# 8. Finally, the new list file is renamed to the target file name, iana-epp-rep-id.txt.
-#
-# During the running of the script, if any errors are found (besides incorrect Identifiers), the script
-# terminates and the temporary files are removed.
+=encoding utf8
 
-# Revision history:
-#
-# Version 1.0: 2015-10-06: Mats Dufberg: First release version
-# Version 1.1: 2015-12-03: Mattias Päivärinta: Adaptions for public use
+=head1 NAME
+
+whois-fetch-epp-repo-ids - Fetches EPP Repository Identifiers registered with IANA
+
+=head1 SYNOPSIS
+
+=over 4
+
+=item whois-test
+
+=item whois-test [ --help | --man | --version ]
+
+=back
+
+=head1 OPTIONS AND ARGUMENTS
+
+=over 4
+
+=item B<-?>, B<--help>
+
+Display usage and options, and exit.
+
+=item B<--man>
+
+Display full man page.
+
+=item B<-V>, B<--version>
+
+Display version information, and exit.
+
+=back
+
+=head1 DESCRIPTION
+
+B<whois-fetch-epp-repo-ids> fetches the database of EPP Repository Identifiers
+registered with IANA.  The database is converted into a simpler text format and
+stored in the user's data home directory.
+
+=head1 ERRORS
+
+If a fatal error occurs before the script terminates normally, the database file
+in the user's data home directory is untouched.
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item HOME
+
+Used to determine the default value of $XDG_DATA_HOME if it's needed.
+
+=item XDG_DATA_HOME
+
+The data home directory. (default: $HOME/.local/share)
+
+=back
+
+=head1 FILES
+
+=over 4
+
+=item F<epp-repo-ids.txt>
+
+The database of EPP repository IDs stored in a text format.  Located in the
+F<$XDG_DATA_HOME/Whois-Selftest-Tool> directory.
+
+=back
+
+=head1 AUTHOR
+
+=over 4
+
+=item Mats Dufberg <mats.dufberg@iis.se>
+
+First release version
+
+=item Mattias Päivärinta <mattias.paivarinta@doxwork.com>
+
+Adaptions for public use
+
+=back
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (c) 2015 IIS (The Internet Foundation In Sweden)
+All rights reserved.
+
+The Whois Selftest Tool and the use hereof is subject to the following licensing
+conditions.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THE SOFTWARE IS PROVIDED AS-IS AND MAKES NO REPRESENTATIONS OR WARRANTIES OF
+ANY KIND CONCERNING THE WORK, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE,
+INCLUDING, WITHOUT LIMITATION, WARRANTIES OF TITLE, MERCHANTIBILITY, FITNESS
+FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR THE ABSENCE OF LATENT OR OTHER
+DEFECTS, ACCURACY, OR THE PRESENCE OF ABSENCE OF ERRORS, WHETHER OR NOT
+DISCOVERABLE.
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv
+
+The database of EPP Repository Identifiers registered with IANA
+
+=back
+
+=cut
 
 use strict;
 use warnings;
@@ -78,6 +182,7 @@ Readonly my @CSV_exp_header  => ( $CSV_EPP_Rep_ID, $CSV_Change_Ctrl, $CSV_Ref_Co
 # CLI arguments - defined early to be usable anywhere
 my $opt_help;         # Ask for help
 my $opt_version;      # Print version
+my $opt_man;
 
 # Print info message
 sub info {
@@ -361,8 +466,11 @@ sub detect_file_encoding {
 # Parse CLI arguments
 GetOptions(
     'help|?'    => \$opt_help,
-    'version'   => \$opt_version,
+    'version|V' => \$opt_version,
+    'man'       => \$opt_man,
 ) || pod2usage( -verbose => 0, -exitval => 2 );
+pod2usage( 1 ) if $opt_help;
+pod2usage( -exitval => 0, -verbose => 2 ) if $opt_man;
 
 # Error if there are extra parameters on the commnd line. Not permitted.
 pod2usage( -verbose => 0, -exitval => 2, -message => "Unknown parameter: @ARGV" ) if @ARGV;
@@ -425,90 +533,6 @@ info( "Wrote the new list to temporary file $new_lf_name" );
 # Move the new list into the target place
 File::Copy::move( $new_lf_name, $epp_id_path ) or croak( "Could not move $new_lf_name to $epp_id_path: $!" );
 info( "The EPP Repository Identifier list $epp_id_path has been updated." );
-
-=encoding utf8
-
-=head1 NAME
-
-B<whois-fetch-epp-repo-ids> - Fetch a database of EPP Repository Identifiers
-
-=head1 USAGE
-
-B<whois-fetch-epp-repo-ids> [--help|--version]
-
-=head1 DESCRIPTION
-
-The script fetches a data base with registered EPP Repository Identifiers from IANA,
-<https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv>. The
-database is, after conversion to a text file, used by B<whois-test>.
-
-=head1 OPTIONS
-
-=over
-
-=item B<--help>
-
-Print this message and exit.
-
-=item B<--version>
-
-Print version and exit.
-
-=back
-
-=head1 ENVIRONMENT
-
-=over 4
-
-=item B<XDG_DATA_HOME>
-
-The data home directory. (default: B<$HOME/.local/share>)
-
-=back
-
-=head1 FILES
-
-Data files are stored inside the B<Whois-Selftest-Tool> directory under data
-home directory. See XDG_DATA_HOME in the ENVIRONMENT section for details on the
-data home directory.
-
-=over 4
-
-=item B<epp-repo-ids.txt>
-
-The fetched database stored in a text format.
-
-=back
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2015 Mats Dufberg
-
-This program is distributed under the MIT (X11) License:
-L<http://www.opensource.org/licenses/mit-license.php>
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-=cut
 
 __DATA__
 # Taken from http://www.w3.org/TR/2000/REC-xml-20001006#CharClasses
