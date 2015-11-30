@@ -343,22 +343,22 @@ sub main {
         $rule = 'Domain Name Object query';
         $glob_types->add_type(
             'query domain name' => sub {
-                my $value = scrub_hostname( shift ) or return ( 'expected exact domain name' );
-                $value eq $opt_domain or return 'expected matching domain name';
+                my $value = scrub_hostname( shift ) or return ( 'must be the domain name specified in --domain' );
+                $value eq $opt_domain or return 'must be the domain name specified in --domainame';
                 return ();
             }
         );
         $glob_types->add_type(
             'epp repo id' => sub {
-                my $value = scrub_roid( shift ) or return ( 'expected exact epp repo id' );
-                $value =~ /-$opt_epp_repo_id$/ or return ( 'expected exact epp repo id' );
+                my $value = scrub_roid( shift ) or return ( 'must be the EPP repo id specified in --epp-repo-id' );
+                $value =~ /-$opt_epp_repo_id$/ or return ( 'must be the EPP repo id specified in --epp-repo-id' );
                 return ();
             }
         );
         $glob_types->add_type(
             'u-label' => sub {
-                my $value = scrub_u_label( shift ) or return ( 'expected u-label matching domain name' );
-                $value eq $opt_domain or return ( 'expected u-label matching domain name' );
+                my $value = scrub_u_label( shift ) or return ( 'must be a U-label matching the domain name specified in --domain' );
+                $value eq $opt_domain or return ( 'must be a U-label matching the domain name specified in --domain' );
                 return ();
             }
         );
@@ -371,8 +371,8 @@ sub main {
         $rule = 'Registrar Object query';
         $glob_types->add_type(
             'query registrar name' => sub {
-                my $value = scrub_postal_line( shift ) or return ( 'expected matching registrar name' );
-                $value =~ /$opt_registrar/ or return 'expected matching registrar name';
+                my $value = scrub_postal_line( shift ) or return ( 'must be a registrar name matching the substring specified in --registrar' );
+                $value =~ /$opt_registrar/ or return 'must be a registrar name matching the substring specified in --registrar';
                 return ();
             }
         );
@@ -385,8 +385,8 @@ sub main {
         $rule = 'Name Server Object query';
         $glob_types->add_type(
             'query name server' => sub {
-                my $value = scrub_hostname( shift ) or return ( 'expected exact name server' );
-                $value eq $opt_nameserver or return ( 'expected exact name server' );
+                my $value = scrub_hostname( shift ) or return ( 'must be the nameserver name specified in --nameserver' );
+                $value eq $opt_nameserver or return ( 'must be the nameserver name specified in --nameserver' );
                 return ();
             }
         );
@@ -399,8 +399,8 @@ sub main {
         $rule = 'Name Server Object query';
         $glob_types->add_type(
             'query name server ip' => sub {
-                my $value = scrub_ip_address( shift ) or return ( 'expected exact name server ip' );
-                $value eq $opt_nameserver_ip or return ( 'expected exact name server ip' );
+                my $value = scrub_ip_address( shift ) or return ( 'must be the IP address specified in --nameserver-ip' );
+                $value eq $opt_nameserver_ip or return ( 'must be the IP address specified in --nameserver-ip' );
                 return ();
             }
         );
