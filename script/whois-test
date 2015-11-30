@@ -232,13 +232,12 @@ use Pod::Usage;
 use Readonly;
 
 use File::Slurp;
-use Net::IDN::Encode qw( domain_to_ascii );
 
 use PDT::TS::Whois::Lexer;
 use PDT::TS::Whois::Validator qw( validate );
 use PDT::TS::Whois::Grammar qw( $grammar );
 use PDT::TS::Whois::Types;
-use PDT::TS::Whois::Util qw( extract_roid );
+use PDT::TS::Whois::Util qw( extract_roid scrub_u_label );
 
 binmode STDIN, ':utf8';
 
@@ -285,31 +284,6 @@ sub scrub_postal_line {
     else {
         return ();
     }
-}
-
-sub scrub_u_label {
-    my $value = shift;
-    defined $value or return ();
-
-    $value =~ /[\x{3002}\x{FF61}]/u and return ();
-
-    my $ascii = eval {
-        domain_to_ascii(
-            $value,
-            AllowUnassigned        => 0,    # false
-            TransitionalProcessing => 0,    # false
-            UseSTD3ASCIIRules      => 0,    # false
-        );
-    };
-    if ( my $error = $@ ) {
-        if ( ref $error eq '' ) {
-            if ( $error =~ /^disallowed character / ) {
-                return ();
-            }
-        }
-        croak $error;
-    }
-    return $ascii;
 }
 
 sub scrub_roid {
