@@ -229,9 +229,10 @@ use Carp;
 use English;
 use Getopt::Long qw( :config );
 use Pod::Usage;
-use Readonly;
 
 use File::Slurp;
+use Net::IP;
+use Readonly;
 
 use PDT::TS::Whois::Lexer;
 use PDT::TS::Whois::Validator qw( validate );

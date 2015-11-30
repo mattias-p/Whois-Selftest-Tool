@@ -52,10 +52,16 @@ Dependencies
 ============
  * Ubuntu 12.04
  * Perl 5.14
+   * DateTime
+   * File::Slurp
+   * Net::IDN::Encode
+   * Net::IP
    * Readonly
    * Regexp::IPv6
    * Test::Differences
    * Test::MockObject
+   * Text::CSV
+   * Text::CSV\_XS
    * URI
    * YAML::Syck
 
