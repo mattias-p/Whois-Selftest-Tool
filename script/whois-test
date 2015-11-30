@@ -431,7 +431,7 @@ sub main {
     @errors = validate( rule => $rule, lexer => $lexer, grammar => $grammar, types => $glob_types );
 
     ##################################################################
-    # Display error messages
+    # Display error and feedback messages
     #
     # This section prints to STDOUT.
     #
