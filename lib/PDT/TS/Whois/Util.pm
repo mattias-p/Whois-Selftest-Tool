@@ -76,7 +76,7 @@ sub scrub_u_label {
     my $value = shift;
     ref $value eq '' or croak 'Argument must be scalar: $value';
 
-    if ( !defined $value || $value =~ /[\x{3002}\x{FF02}\x{FF61}]/u ) {
+    if ( !defined $value || $value =~ /[\x{3002}\x{FF0E}\x{FF61}]/u ) {
         return ();
     }
 
