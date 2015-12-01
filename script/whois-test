@@ -96,9 +96,9 @@ Examples:
 Make a request for domain name objects matching C<domain.example> to the Whois
 server at IP address C<128.66.0.1>.
 
-=item C<echo -n "roid\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
+=item C<echo -n "roid abc123-ÅÄÖ\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
 
-Make a request for the object with id C<roid> to the Whois server at IP address
+Make a request for the object with ROID C<abc123-ÅÄÖ> to the Whois server at IP address
 C<128.66.0.1>.
 
 =item C<echo -n "registrar Partial Registrar Name\r\n" | nc -q10 128.66.0.1 E<gt> queryoutput.txt>
@@ -355,8 +355,8 @@ sub main {
         "domain|d=s"        => sub { $opt_domain = scrub_hostname( $_[1] ) or die "domain argument must be valid hostname" },
         "registrar|r=s"     => sub { $opt_registrar = scrub_postal_line( $_[1] ) or die "registrar argument must be valid postal line" },
         "nameserver|n=s"    => sub { $opt_nameserver = scrub_hostname( $_[1] ) or die "nameserver argument must be valid hostname" },
-        "nameserver-ip|i=s" => sub { $opt_nameserver_ip = scrub_ip_address( $_[1] ) or die "nameserver-ip argument must be valid nameserver ip" },
-        "epp-repo-id|e=s"   => sub { $opt_epp_repo_id = scrub_roid_suffix( $_[1] ) or die "epp-repo-id must be valid roid suffix" },
+        "nameserver-ip|i=s" => sub { $opt_nameserver_ip = scrub_ip_address( $_[1] ) or die "nameserver-ip argument must be valid nameserver IP" },
+        "epp-repo-id|e=s"   => sub { $opt_epp_repo_id = scrub_roid_suffix( $_[1] ) or die "epp-repo-id must be valid ROID suffix" },
         ""                  => \$opt_stdin,
     ) or pod2usage( 2 );
     pod2usage( 1 ) if $opt_help;
@@ -499,7 +499,8 @@ sub main {
 
     if ( $is_type_2 && !@errors ) {
         my $roid = extract_roid( $text );
-        say "Multiple name servers response: Make a new whois query for roid '$roid' and rerun this same command on the response.";
+        my $option = $opt_nameserver ? '--nameserver' : $opt_nameserver_ip ? '--nameserver-ip' : croak 'unexpected error: unknown flag used';
+        say "Multiple name servers response: Make a new query for ROID '$roid' to the same Whois server. Test that result with the whois-test command. Use the same value for $option when you retest.";
     }
 }
 
