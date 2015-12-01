@@ -399,8 +399,8 @@ sub main {
         );
         $glob_types->add_type(
             'epp repo id' => sub {
-                my $value = scrub_roid( shift ) or return ( 'must be the EPP repo id specified in --epp-repo-id' );
-                $value =~ /-$opt_epp_repo_id$/ or return ( 'must be the EPP repo id specified in --epp-repo-id' );
+                my $value = scrub_roid( shift ) or return ( 'must be a ROID and its suffix must be a registered EPP Rep ID and must be the one specified in --epp-repo-id' );
+                $value =~ /-$opt_epp_repo_id$/ or return ( 'must be a ROID with the suffix specified in --epp-repo-id' );
                 return ();
             }
         );
