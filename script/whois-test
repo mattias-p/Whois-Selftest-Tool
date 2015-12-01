@@ -124,7 +124,7 @@ available on all Unix, Linux or Mac computers.
 Note: The C<whois> command is not recommended for this task since it does not
 respect the newline format of the responses.
 
-Note: Netcat doesn't support -q on OS X.  Try using the -w option instead.
+Note: Netcat doesn't support -q on OS X.  Try using the -i option instead.
 
 =item 3. Ensure that the character encoding is UTF-8 or ASCII
 
