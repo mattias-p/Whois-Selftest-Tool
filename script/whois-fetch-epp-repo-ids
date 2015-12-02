@@ -142,7 +142,6 @@ use utf8;
 our $VERSION = '1.1';
 
 use Carp;
-use DateTime;
 use Encode;
 use English;
 use File::Basename;
@@ -151,18 +150,18 @@ use File::Path qw( make_path );
 use File::Temp qw( tempdir );
 use Getopt::Long;
 use Pod::Usage;
-use Readonly;
 
+use DateTime;
+use File::Which;
+use Readonly;
 use Text::CSV_XS 0.90;
 use Text::CSV;
 
 # General settings that cannot be changed.
 Readonly my $iana_url => 'https://www.iana.org/assignments/epp-repository-ids/epp-repository-ids-1.csv';    # IANA URL for EPP Repository Identifiers
 
-Readonly my $wget      => '/usr/bin/wget';                                                                  # wget to fetch file with
-Readonly my $timeout   => '/usr/bin/timeout';                                                               # Timeout program to control that wget does not hang too long.
-Readonly my $fileprog  => "/usr/bin/file";                                                                  # To test encoding of file before we process it.
-Readonly my @ext_progs => ( $wget, $timeout, $fileprog );                                                   # To be able to test that they are there and executable
+Readonly my $wget      => 'wget';                                                                           # wget to fetch file with
+Readonly my @ext_progs => ( $wget );                                                                        # To be able to test that they are there and execut
 
 Readonly my $datahome => $ENV{XDG_DATA_HOME} || $ENV{HOME} . '/.local/share';                               # Base directory relative to which user specific data files should be stored
 Readonly my $datadir     => $datahome . '/Whois-Selftest-Tool';                                             # User specific data directory for Whois-Selftest-Tool
@@ -443,9 +442,8 @@ sub fetch_url {
     my $url      = shift;
     my $filename = shift;
 
-    my $to  = 1200;                                                            # Timeout after 20 minutes if wget hangs
-    my $kto = 20;                                                              # Send a KILL after 20 more seconds, if needed.
-    my $cmd = "$timeout -k $kto $to $wget -nv -O $filename $url";
+    my $to  = 1200;                                              # Timeout after 20 minutes if wget hangs
+    my $cmd = "$wget -t $to -nv -O $filename $url";
     my @log = qx/$cmd 2>&1/;
     chomp @log;
     if ( $? == 0 ) {
@@ -454,17 +452,6 @@ sub fetch_url {
     else {
         croak( "@log\nFailed running '$cmd'" );
     }
-}
-
-# Detect and return file encoding
-sub detect_file_encoding {
-    my $filename = shift;
-
-    my $cmd = "$fileprog -b --mime-encoding $filename";
-    my @log = qx/$cmd 2>&1/;
-    chomp @log;
-    $? == 0 or croak( "@log\nFailed running '$cmd'" );
-    return $log[0];
 }
 
 # Parse CLI arguments
@@ -492,12 +479,7 @@ info( "Start $me version $VERSION" );
 
 # Verify that externa programs are there and executable by me
 foreach my $prog ( @ext_progs ) {
-    unless ( -e $prog ) {
-        croak( "External program $prog is missing." );
-    }
-    unless ( -x $prog ) {
-        croak( "External program $prog is not executable." );
-    }
+    which $prog or croak "program not found: $prog";
 }
 
 # Create data directory
@@ -507,13 +489,6 @@ unless ( -d $datadir ) {
 
 # Fetch the file from IANA into the temporary work file
 fetch_url($iana_url, $workfilename);
-
-# Check the fetched file. It must be an ascii or utf-8 file.
-{
-    my $encoding = detect_file_encoding($workfilename);
-    $encoding eq 'us-ascii' || $encoding eq 'utf-8' or croak( "$workfilename is encoded in " . $encoding );
-    info( "$workfilename is encoded in " . $encoding );
-}
 
 # Now we are about to parse the tempfile and push to the new list file in correct format
 

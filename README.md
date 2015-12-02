@@ -57,6 +57,7 @@ Dependencies
  * Perl 5.14
    * DateTime
    * File::Slurp
+   * File::Which
    * Net::IDN::Encode
    * Net::IP
    * Readonly
@@ -67,6 +68,7 @@ Dependencies
    * Text::CSV\_XS
    * URI
    * YAML::Syck
+ * wget
 
 Installation
 ============
