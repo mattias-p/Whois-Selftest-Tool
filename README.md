@@ -24,6 +24,22 @@ Version history
 ===============
 * v1.0.0 - Initial public release (2015-12-03)
 
+Specification compatibility matrix
+----------------------------------
+Refer to this compatibility matrix when deciding which version of Whois Selftest
+Tool to use.
+
+<table>
+<tr><th>Whois Selftest Tool version</th><th>PDT Test Specifications</th></tr>
+<tr><td>v1.0.0</td><td>v.2.8</td></tr>
+</table>
+
+Roadmap
+=======
+The plan is to solve know issues and any bugs of importance before the
+stricter Whois testing is enforced at 2016-01-31. New versions will be released
+when fixes are stable.
+
 References
 ==========
 The [Pre-Delegation Testing]( http://newgtlds.icann.org/en/applicants/pdt)
@@ -36,16 +52,6 @@ microsite hosts the following documents relevant to the Whois Selftest Tool:
   the format specification that the Whois Selftest Tool implements.
 
 In the PDT\_Whois\_TP you can find references to other useful documents.
-
-Specification compatibility matrix
-----------------------------------
-Refer to this compatibility matrix when deciding which version of Whois Selftest
-Tool to use.
-
-<table>
-<tr><th>Whois Selftest Tool version</th><th>PDT Test Specifications</th></tr>
-<tr><td>v1.0.0</td><td>v.2.8</td></tr>
-</table>
 
 Licensing
 =========
@@ -138,5 +144,10 @@ will magically make upper-case characters into its equivalent lower-case charact
 The upper-case characters are not valid in a U-label. This issue can make false
 positive validations of Whois responses when the "Internationalized Domain Name"
 field is present in a Domain Object response.
+
+Reporting bugs
+--------------
+If you find any bug not listed as a known issue, you can report that using the
+issues function in Github.
 
 
