@@ -99,7 +99,7 @@ and copy the scripts and libraries there.
     $> cd <somewhere>
     $> mkdir <programdir>
     $> cp <installdir>/script/* <programdir>/
-    $> cp -r <installdir>/lib/ PDT <programdir>/
+    $> cp -r <installdir>/lib/PDT <programdir>/
 
 Now the script is installed and can be run from `<programdir>`. To check the
 installation run the scripts with `--help`.
@@ -111,16 +111,16 @@ installation run the scripts with `--help`.
 Before use
 ==========
 Before you use the tool, make sure that you have read the documents listed
-in the reference above. Without the Test Plan ("TP") it might be hard to
-understand any error message emitted.
+in the reference above. Some error messages may be difficult to understand
+without referring to the PDT\_Whois\_TP document.
 
 Usage
 =====
 The Whois Selftest Tool provides the two commands `whois-fetch-epp-repo-ids`
 and `whois-test`. If you have followed the installation above, always go to
 your `<programdir>` and run the commands from there or else the scripts will
-not be able to find the libraries in the `PDT` directory. You probably have to
-prepend the commands with `./` just as in the instructions above
+not be able to find its libraries in the `PDT` directory. You probably have to
+prepend the commands with `./` just as in the instructions above.
 
 `whois-fetch-epp-repo-ids` fetches the EPP Repository Identifiers registered
 with IANA and stores them in a text file inside the user's home directory.
@@ -139,15 +139,14 @@ See the man pages for the respective commands for details on how to run them.
 
 Known issues
 ============
-The Perl library that converts between IDN U-label and IDN A-label, Net::IDN::encode,
-will magically make upper-case characters into its equivalent lower-case characters.
-The upper-case characters are not valid in a U-label. This issue can make false
-positive validations of Whois responses when the "Internationalized Domain Name"
-field is present in a Domain Object response.
+ * The Perl library that converts between IDN U-label and IDN A-label,
+   Net::IDN::encode, will magically make upper-case characters into its
+   equivalent lower-case characters.  The upper-case characters are not valid
+   in a U-label. This issue can make false positive validations of Whois
+   responses when the "Internationalized Domain Name" field is present in a
+   Domain Object response.
 
 Reporting bugs
 --------------
 If you find any bug not listed as a known issue, you can report that using the
 issues function in Github.
-
-
