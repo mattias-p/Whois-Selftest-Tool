@@ -53,8 +53,9 @@ Whois Selftest Tool is distributed under the terms of [this license]( LICENSE).
 
 Dependencies
 ============
- * Ubuntu 12.04
- * Perl 5.14
+ * Ubuntu Linux version 12.04
+ * Perl, version 5.14 or higher
+ * Standard Perl libraries found on CPAN.org
    * DateTime
    * File::Slurp
    * File::Which
@@ -70,6 +71,10 @@ Dependencies
    * YAML::Syck
  * wget
 
+The Whois Selftest Tool has been developed on Unbuntu Linux, but we have tried to
+avoid Linux specific coding. There is, however, no guarantee that it works on
+other OSs.
+
 Installation
 ============
 Clone the project repository and choose version according to the specification
@@ -82,6 +87,21 @@ compatibility matrix.
 `<installdir>` is assumed to be in the PATH in code examples throughout the
 rest of this document.
 
+Create a program directory `<programdir>` to install Whois Selftest Tool in,
+and copy the scripts and libraries there.
+
+    $> cd <somewhere>
+    $> mkdir <programdir>
+    $> cp <installdir>/script/* <programdir>/
+    $> cp -r <installdir>/lib/ PDT <programdir>/
+
+Now the script is installed and can be run from `<programdir>`. To check the
+installation run the scripts with `--help`.
+
+    $> cd <programdir>
+    $> ./whois-test --help
+    $> ./whois-fetch-epp-repo-ids --help
+
 Before use
 ==========
 Before you use the tool, make sure that you have read the documents listed
@@ -91,7 +111,10 @@ understand any error message emitted.
 Usage
 =====
 The Whois Selftest Tool provides the two commands `whois-fetch-epp-repo-ids`
-and `whois-test`.
+and `whois-test`. If you have followed the installation above, always go to
+your `<programdir>` and run the commands from there or else the scripts will
+not be able to find the libraries in the `PDT` directory. You probably have to
+prepend the commands with `./` just as in the instructions above
 
 `whois-fetch-epp-repo-ids` fetches the EPP Repository Identifiers registered
 with IANA and stores them in a text file inside the user's home directory.
