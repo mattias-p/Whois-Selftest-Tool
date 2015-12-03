@@ -146,6 +146,10 @@ Known issues
    responses when the "Internationalized Domain Name" field is present in a
    Domain Object response.
 
+* Perl 5.14 only supports Unicode 6.0.0. If an "Internationalized Domain Name"
+  field contains code points available in Unicode 6.3.0 but not in Unicode 6.0.0, and valid for IDNA,
+  then they will incorrectly be reported as invalid.
+
 Reporting bugs
 --------------
 If you find any bug not listed as a known issue, you can report that using the
